@@ -1,4 +1,4 @@
-﻿# Codex Native Selector
+# Codex Native Selector
 
 > A local customization of the Codex Desktop model selector, built from the Codex installation already present on Windows.
 
