@@ -1,0 +1,16 @@
+﻿{
+  "name": "codex-native-selector",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local build tooling for the Codex Desktop native selector customization.",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "dependencies": {
+    "@electron/asar": "4.2.0"
+  },
+  "scripts": {
+    "check": "node --check tools/build-inplace-asar.mjs"
+  }
+}

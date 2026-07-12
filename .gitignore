@@ -1,0 +1,20 @@
+﻿# Generated application copies and archives
+outputs/
+work/asar-extracted/
+work/verify-*/
+work/*.asar
+work/*.log
+
+# Local Codex/Electron state
+**/user-data/
+**/NativeSelector-*/
+
+# Node / tooling noise
+node_modules/
+npm-debug.log*
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
