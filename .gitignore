@@ -1,4 +1,4 @@
-﻿# Generated application copies and archives
+# Generated application copies and archives
 outputs/
 work/asar-extracted/
 work/verify-*/
@@ -18,3 +18,4 @@ npm-debug.log*
 .idea/
 .DS_Store
 Thumbs.db
+work/
