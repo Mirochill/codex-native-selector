@@ -1,16 +1,16 @@
-# Codex Native Selector
+﻿# Codex Native Selector
 
-> Une personnalisation locale du sélecteur de modèles de Codex Desktop, construite à partir de l’installation Codex déjà présente sur Windows.
+> A local customization of the Codex Desktop model selector, built from the Codex installation already present on Windows.
 
 [![Platform](https://img.shields.io/badge/platform-Windows-0078D4?style=for-the-badge&logo=windows)](https://www.microsoft.com/windows)
 [![Codex Desktop](https://img.shields.io/badge/Codex%20Desktop-local%20patch-10A37F?style=for-the-badge)](https://openai.com/codex/)
 [![License](https://img.shields.io/badge/license-MIT-6E56CF?style=for-the-badge)](LICENSE)
 
-Ce projet transforme le sélecteur compact de Codex en une interface plus lisible et plus rapide à utiliser : variantes en onglets, curseur de réflexion natif, animation colorée par famille de modèle, Fast, engrenage et menu de modèles regroupé automatiquement.
+This project turns Codex's compact model selector into a clearer and faster interface: model variants in tabs, the native reasoning slider, model-specific animated colors, Fast mode, a settings button, and an automatically grouped model menu.
 
-Le projet ne redistribue pas Codex et ne remplace pas l’application officielle. Il génère une copie portable locale à partir de ton installation existante.
+The project does not redistribute Codex or replace the official installation. It generates a local portable copy from the Codex installation already on your computer.
 
-## Aperçu
+## Preview
 
 ```text
 ┌──────────────────────────────────────────────┐
@@ -18,63 +18,64 @@ Le projet ne redistribue pas Codex et ne remplace pas l’application officielle
 │                                              │
 │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━●            │
 └──────────────────────────────────────────────┘
-              5.6 Terra  Très élevé
+              5.6 Terra  Very high
 ```
 
-Le bouton ⚙ ouvre directement la liste des familles disponibles, par exemple `5.6`, `5.5`, `5.4` et `5.3 Codex Spark`. Les variantes d’une famille restent dans la barre supérieure : le menu ne duplique donc pas `Sol`, `Terra`, `Luna` ou `Mini`.
+The ⚙ button opens the available model families, such as `5.6`, `5.5`, `5.4`, and `5.3 Codex Spark`. Variants remain in the top row, so the model menu does not duplicate `Sol`, `Terra`, `Luna`, or `Mini`.
 
-## Fonctionnalités
+## Features
 
-- Curseur basé sur le composant natif de Codex Desktop.
-- Efforts de raisonnement récupérés depuis le catalogue réel fourni par Codex.
-- Variantes affichées uniquement lorsqu’elles existent réellement.
-- Onglet `Full` fixe pour une famille qui ne possède pas de variante sélectionnable.
-- Menu engrenage regroupé automatiquement par famille de modèles.
-- Animation Ultra recolorée avec la couleur de la famille active, tout en conservant l’animation native du curseur.
-- Bouton Fast conservé dans la même barre que les variantes.
-- Menu de modèles rendu au-dessus de l’interface via un portail DOM, afin d’éviter les problèmes de clipping et de z-index.
-- Copie portable séparée : l’installation Microsoft Store officielle reste intacte.
+- Uses Codex Desktop's native model-power slider component.
+- Reads reasoning efforts from the real Codex model catalog.
+- Shows model variants only when they actually exist.
+- Displays a fixed `Full` tab for a family with no selectable variant.
+- Groups the model menu automatically by model family.
+- Recolors the Ultra animation using the active model family's color while preserving the native slider animation.
+- Keeps Fast mode in the same row as the model variants.
+- Renders the model menu above the interface through a DOM portal to avoid clipping and z-index issues.
+- Creates a separate portable copy while leaving the official Microsoft Store installation untouched.
 
-## Fonctionnement
+## How it works
 
 ```mermaid
 flowchart LR
-    A[Installation Codex officielle] --> B[app.asar local]
-    B --> C[Extraction temporaire]
-    C --> D[Patch ciblé du bundle]
-    D --> E[app.asar de la copie portable]
-    E --> F[Sélecteur natif personnalisé]
-    F --> G[Catalogue et efforts réels de Codex]
+    A[Official Codex installation] --> B[Local app.asar]
+    B --> C[Temporary extraction]
+    C --> D[Targeted bundle patch]
+    D --> E[Portable app.asar]
+    E --> F[Customized native selector]
+    F --> G[Real Codex catalog and efforts]
 ```
 
-Le patch touche uniquement le bundle du sélecteur et conserve la structure, les composants, les événements et le backend de l’application d’origine. Le reste de l’application est copié sans modification.
+The patch only targets the selector bundle and preserves the original application structure, components, events, and backend. The rest of the application is copied without modification.
 
 ## Installation
 
-### Prérequis
+### Requirements
 
-- Windows 10 ou Windows 11.
-- Codex Desktop installé officiellement, idéalement via le Microsoft Store.
-- Node.js 22.12 ou plus récent.
+- Windows 10 or Windows 11.
+- Codex Desktop installed officially, preferably through the Microsoft Store.
+- Node.js 22.12 or newer.
 - PowerShell.
-- Codex complètement fermé pendant la construction et le lancement.
+- Codex fully closed while building and launching.
 
-### 1. Cloner le projet
+### 1. Clone the repository
 
 ```powershell
 git clone https://github.com/Mirochill/codex-native-selector.git
 Set-Location .\codex-native-selector
+npm install
 ```
 
-### 2. Trouver le dossier Codex installé
+### 2. Find the installed Codex directory
 
-Le dossier ressemble généralement à ceci :
+The directory usually looks like this:
 
 ```text
 C:\Program Files\WindowsApps\OpenAI.Codex_<version>_x64__2p2nqsd0c76g0\app
 ```
 
-Pour repérer automatiquement la version la plus récente :
+To automatically find the most recent version:
 
 ```powershell
 $package = Get-ChildItem 'C:\Program Files\WindowsApps' -Directory -Filter 'OpenAI.Codex_*' |
@@ -84,11 +85,11 @@ $installApp = Join-Path $package.FullName 'app'
 $installApp
 ```
 
-Si Windows refuse l’accès au dossier `WindowsApps`, utilise le chemin de l’installation affiché dans les propriétés de Codex ou renseigne-le manuellement.
+If Windows denies access to `WindowsApps`, use the installation path shown in Codex's properties or enter the path manually.
 
-### 3. Extraire temporairement l’archive officielle
+### 3. Extract the official archive temporarily
 
-Cette étape lit l’application locale, mais ne modifie pas l’installation officielle :
+This reads the local application but does not modify the official installation:
 
 ```powershell
 Remove-Item .\work\asar-extracted -Recurse -Force -ErrorAction SilentlyContinue
@@ -97,7 +98,7 @@ npx --yes @electron/asar extract `
   .\work\asar-extracted
 ```
 
-### 4. Construire la copie personnalisée
+### 4. Build the customized copy
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
@@ -105,25 +106,25 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -InstallApp $installApp
 ```
 
-Le résultat est généré dans :
+The result is generated in:
 
 ```text
 outputs\Codex-Native-Selector\
 ```
 
-### 5. Lancer Codex Native Selector
+### 5. Launch Codex Native Selector
 
-Ferme Codex officiel, y compris son icône dans la zone de notification Windows, puis lance :
+Close official Codex, including its tray icon in the Windows notification area, then launch:
 
 ```text
 outputs\Codex-Native-Selector\Launch Codex Native Selector.cmd
 ```
 
-Les deux applications ne doivent pas fonctionner simultanément, car elles utilisent le même environnement Codex local.
+The official and customized copies must not run at the same time because they use the same local Codex environment.
 
-## Mettre à jour après une mise à jour Codex
+## Updating after a Codex update
 
-Le bundle frontend de Codex peut changer de nom ou de structure après une mise à jour. Il faut donc reconstruire depuis la nouvelle installation :
+The Codex frontend bundle can change its filenames or structure after an update. Rebuild from the new installation:
 
 ```powershell
 Remove-Item .\work\asar-extracted -Recurse -Force -ErrorAction SilentlyContinue
@@ -135,65 +136,66 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -InstallApp $installApp
 ```
 
-Si le script signale qu’un chunk ou une fonction n’a pas été trouvé, la version de Codex a probablement changé. Il faut alors adapter les sélecteurs de recherche dans `tools/build-inplace-asar.mjs` avant de reconstruire.
+If the script reports that a chunk or function cannot be found, the Codex version has probably changed. Update the search markers in `tools/build-inplace-asar.mjs` and rebuild.
 
-## Avantages
+## Advantages
 
-| Point | Bénéfice |
+| Area | Benefit |
 | --- | --- |
-| Pas de fork de Codex | Le projet ne maintient pas une copie complète de l’application. |
-| Pas de réinstallation | La copie est reconstruite depuis Codex déjà installé. |
-| Installation officielle préservée | Le package Microsoft Store original n’est pas écrasé. |
-| Composants natifs | Le curseur, ses événements et le comportement du modèle restent ceux de Codex. |
-| Catalogue dynamique | Les modèles et efforts viennent de la configuration réelle de Codex. |
-| Maintenance ciblée | Le patch se concentre sur un seul bundle frontend. |
+| No Codex fork | The project does not maintain a complete copy of the application. |
+| No reinstallation | The copy is rebuilt from Codex already installed locally. |
+| Official installation preserved | The Microsoft Store package is not overwritten. |
+| Native components | The slider, its events, and model behavior remain Codex components. |
+| Dynamic catalog | Models and reasoning efforts come from Codex's real configuration. |
+| Targeted maintenance | The patch focuses on one frontend bundle. |
 
-## Limitations importantes
+## Important limitations
 
-- Ce n’est pas un plugin officiel : Codex Desktop ne fournit pas d’API publique permettant de remplacer son interface native par un plugin.
-- Le projet est prévu pour Windows.
-- La copie est liée à la version et aux noms de chunks de Codex utilisés lors de la construction.
-- Une mise à jour Codex peut nécessiter une adaptation du patch.
-- L’archive officielle n’est pas incluse dans GitHub, notamment pour des raisons de taille, de redistribution et de propriété logicielle.
-- Le projet ne contourne aucune authentification, limitation de compte ou règle de service.
-- Il faut fermer l’instance officielle avant de lancer la copie personnalisée.
-- Les modèles réellement disponibles dépendent toujours du compte, de l’offre et du backend Codex utilisé.
+- This is not an official plugin: Codex Desktop does not expose a public API for replacing its native UI with a plugin.
+- The project currently targets Windows.
+- The copy is tied to the Codex version and frontend chunk names used during the build.
+- A Codex update may require changes to the patch.
+- The official archive is not included on GitHub because of its size, redistribution concerns, and software ownership.
+- The project does not bypass authentication, account limits, or service rules.
+- The official instance must be closed before launching the customized copy.
+- Available models still depend on the user's account, plan, and Codex backend.
 
-## Dépannage
+## Troubleshooting
 
-### L’application reste sur le logo OpenAI
+### The application stays on the OpenAI logo
 
-Vérifie que tu as bien extrait `app.asar` correspondant à la version actuellement installée, puis reconstruis la copie. Une ancienne archive extraite peut contenir des noms de chunks incompatibles.
+Make sure that `app.asar` was extracted from the currently installed Codex version, then rebuild the copy. An old extracted archive may contain incompatible chunk names.
 
-### Le lanceur indique qu’une autre instance est ouverte
+### The launcher says that another instance is open
 
-Quitte Codex depuis l’icône de notification Windows. Fermer uniquement la fenêtre principale peut laisser le processus en arrière-plan.
+Quit Codex from the Windows notification-area icon. Closing only the main window may leave the background process running.
 
-### Le sélecteur ne reflète pas les nouveaux modèles
+### The selector does not show new models
 
-Reconstruis depuis la nouvelle archive officielle. Le projet ne fabrique pas une liste artificielle de modèles : il réutilise le catalogue exposé par Codex.
+Rebuild from the newest official archive. This project does not manufacture a model list: it reuses the catalog exposed by Codex.
 
-### Je veux revenir à Codex officiel
+### I want to return to official Codex
 
-Ferme la copie personnalisée, puis relance Codex depuis le menu Démarrer. Aucune désinstallation ni restauration de fichiers n’est nécessaire.
+Close the customized copy, then launch Codex from the Start menu. No uninstall or file restoration is required.
 
-## Structure du dépôt
+## Repository structure
 
 ```text
 tools/
-├── build-portable.ps1       # Copie l’installation locale et génère le lanceur
-├── build-inplace-asar.mjs   # Applique le patch ciblé à app.asar
-└── selector-v2.js.txt       # Composant du sélecteur personnalisé
+├── build-portable.ps1       # Copies the local installation and creates the launcher
+├── build-inplace-asar.mjs   # Applies the targeted app.asar patch
+└── selector-v2.js.txt        # Customized selector component
 
 README.md
 LICENSE
 .gitignore
+package.json
 ```
 
-Les dossiers `outputs/`, `work/asar-extracted/` et les archives générées sont ignorés par Git afin de ne jamais publier accidentellement une copie complète de Codex, un profil local ou des données personnelles.
+The `outputs/`, `work/asar-extracted/`, and generated archives are ignored by Git so that a full Codex copy, local profile, or personal data cannot be published accidentally.
 
-## Licence
+## License
 
-Les scripts et le code de personnalisation de ce dépôt sont distribués sous licence [MIT](LICENSE).
+The scripts and customization code in this repository are distributed under the [MIT License](LICENSE).
 
-Codex Desktop, ses composants, ses ressources et ses modèles restent la propriété de leurs détenteurs respectifs. Ce projet communautaire n’est ni affilié à OpenAI ni approuvé par OpenAI.
+Codex Desktop, its components, resources, and models remain the property of their respective owners. This community project is not affiliated with or endorsed by OpenAI.
