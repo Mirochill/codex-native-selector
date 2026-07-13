@@ -1,11 +1,14 @@
 ﻿param(
     [Parameter(Mandatory = $true)]
     [string]$InstallApp,
-    [string]$Destination = (Join-Path (Split-Path -Parent $PSScriptRoot) 'outputs\Codex-Native-Selector')
+    [string]$Destination
 )
 
 $ErrorActionPreference = 'Stop'
 $workspace = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+if ([string]::IsNullOrWhiteSpace($Destination)) {
+    $Destination = Join-Path $workspace 'outputs\Codex-Native-Selector'
+}
 $destinationFull = [System.IO.Path]::GetFullPath($Destination)
 $installFull = [System.IO.Path]::GetFullPath($InstallApp)
 if (-not (Test-Path -LiteralPath $installFull)) { throw "Codex app directory not found: $installFull" }
