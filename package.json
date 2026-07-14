@@ -11,6 +11,6 @@
     "@electron/asar": "4.2.0"
   },
   "scripts": {
-    "check": "node --check tools/build-inplace-asar.mjs"
+    "check": "node --check tools/build-inplace-asar.mjs && node --test tools/*.test.mjs"
   }
 }

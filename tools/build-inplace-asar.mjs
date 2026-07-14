@@ -3,6 +3,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
+import {
+  adaptCompactSelector,
+  selectSelectorCompatibilityProfile,
+} from "./selector-compatibility.mjs";
 const require = createRequire(import.meta.url);
 const asarLib = path.dirname(require.resolve("@electron/asar"));
 const { readArchiveHeaderSync } = await import(`${pathToFileURL(asarLib).href}/disk.js`);
@@ -13,20 +17,30 @@ const destinationArchive = path.resolve(
   process.argv[3] ?? "outputs/Codex-Native-Selector/app/resources/app.asar",
 );
 const extractedRoot = path.resolve(process.argv[5] ?? "work/asar-extracted");
-const chunkRelativePath =
-  "webview/assets/model-and-reasoning-dropdown-DFupBzq6.js";
+const assetsRoot = path.join(extractedRoot, "webview/assets");
+const findSingleAsset = (pattern, description) => {
+  const matches = fs.readdirSync(assetsRoot).filter((name) => pattern.test(name));
+  if (matches.length !== 1) {
+    throw new Error(`Expected one ${description} asset, found ${matches.length}.`);
+  }
+  return matches[0];
+};
+const chunkFileName = findSingleAsset(
+  /^model-and-reasoning-dropdown-.*\.js$/u,
+  "model selector",
+);
+const reactDomFileName = findSingleAsset(/^react-dom-.*\.js$/u, "React DOM");
+const chunkRelativePath = `webview/assets/${chunkFileName}`;
 const chunkSourcePath = path.join(extractedRoot, chunkRelativePath);
 
 let source = fs.readFileSync(chunkSourcePath, "utf8");
-source = `import{t as Cp}from"./react-dom-CTTwO1mS.js";${source}`;
+source = `import{t as Cp}from"./${reactDomFileName}";${source}`;
 
-const catalogBefore =
-  "function K(e){let t=q(ce,e);if(t.length>=4)return t;let n=q(le,e);return n.length>=4?n:[]}";
-const catalogAfter = "function K(e){return oe(e)}";
-if (!source.includes(catalogBefore)) {
-  throw new Error("The original compact catalog function was not found.");
-}
-source = source.replace(catalogBefore, catalogAfter);
+const compatibilityProfile = selectSelectorCompatibilityProfile(source);
+source = source.replace(
+  compatibilityProfile.catalogBefore,
+  compatibilityProfile.catalogAfter,
+);
 
 const fieldsBefore = "supportedReasoningEfforts:n})=>{let r=";
 const fieldsAfter =
@@ -39,8 +53,12 @@ if (!source.includes(fieldsBefore) || !source.includes(valueBefore)) {
 }
 source = source.replace(fieldsBefore, fieldsAfter).replace(valueBefore, valueAfter);
 
-const componentStart = source.indexOf("function Ve(e){");
-const componentEnd = source.indexOf("function He(e){", componentStart);
+const { componentName, nextComponentName } = compatibilityProfile;
+const componentStart = source.indexOf(`function ${componentName}(e){`);
+const componentEnd = source.indexOf(
+  `function ${nextComponentName}(e){`,
+  componentStart,
+);
 if (componentStart < 0 || componentEnd < 0) {
   throw new Error("The original compact selector component was not found.");
 }
@@ -53,22 +71,29 @@ function Ck(e,t){let n=`gpt-${t}`;return e===n?`full`:e.startsWith(`${n}-`)?e.sl
 function Ve(e){let{active:t,fastModeEnabled:n,onDragToMax:r,onSelectPower:i,powerSelections:a,selectedPowerSelection:o,shouldReduceMotion:s,transitionsReady:l}=e;if(o==null)return(0,Z.jsx)(`div`,{className:X.SimpleView});Cs();let u=Cf(o.model),d=[...new Set(a.filter(e=>Cf(e.model)===u).map(e=>e.model))],f=a.filter(e=>e.model===o.model),p=f.map(e=>({id:e.id,isMax:e.reasoningEffort===`ultra`,label:e.modelLabel})),m=e=>{let t=a.find(t=>t.id===e.id);t&&i(t)},h=e=>{let t=a.filter(t=>t.model===e),n=t.find(e=>e.reasoningEffort===o.reasoningEffort)??t.find(e=>e.reasoningEffort===e.defaultReasoningEffort)??t[0];n&&i(n)},g=d.length>1?(0,Z.jsx)(`div`,{className:`codex-tabs`,role:`tablist`,children:d.map(e=>(0,Z.jsx)(`button`,{type:`button`,role:`tab`,"aria-selected":e===o.model,"data-s":e===o.model,onPointerDown:e=>e.preventDefault(),onClick:t=>{t.preventDefault(),t.stopPropagation(),h(e)},children:Cv(e,u)},e))}):null;return(0,Z.jsxs)(`div`,{className:`${X.SimpleView} codex-native`,"data-v":Ck(o.model,u),children:[g,(0,Z.jsx)(ye,{active:t,fastModeEnabled:n,keyboardControlFocused:!1,onDragToMax:r,onSelectOption:m,options:p,selectedOptionId:o.id,shouldReduceMotion:s,transitionsReady:l})]})}
 */}
 
-const compactSelector = fs
-  .readFileSync(path.resolve(process.argv[4] ?? "tools/selector-v2.js.txt"), "utf8")
-  .replace(/^\uFEFF/u, "");
+const compactSelector = adaptCompactSelector(
+  fs
+    .readFileSync(path.resolve(process.argv[4] ?? "tools/selector-v2.js.txt"), "utf8")
+    .replace(/^\uFEFF/u, ""),
+  compatibilityProfile,
+);
 source =
   source.slice(0, componentStart) +
   compactSelector +
   source.slice(componentEnd);
 
-const controlsStart = source.indexOf("function rt(e){");
-const controlsEnd = source.indexOf("function it(e){", controlsStart);
+const { controlsName, nextControlsName } = compatibilityProfile;
+const controlsStart = source.indexOf(`function ${controlsName}(e){`);
+const controlsEnd = source.indexOf(
+  `function ${nextControlsName}(e){`,
+  controlsStart,
+);
 if (controlsStart < 0 || controlsEnd < 0) {
   throw new Error("The original compact selector controls were not found.");
 }
 source =
   source.slice(0, controlsStart) +
-  "function rt(e){let{ref:t}=e;return(0,Q.jsx)(`div`,{className:`codex-controls-placeholder`,ref:t})}" +
+  `function ${controlsName}(e){let{ref:t}=e;return(0,Q.jsx)(\`div\`,{className:\`codex-controls-placeholder\`,ref:t})}` +
   source.slice(controlsEnd);
 
 const sliderPropsBefore =
@@ -80,15 +105,14 @@ if (!source.includes(sliderPropsBefore)) {
 }
 source = source.replace(sliderPropsBefore, sliderPropsAfter);
 
-const advancedStateBefore = "D=(0,ft.useRef)(null),O=i===`advanced`,k=";
-const advancedStateAfter = "D=(0,ft.useRef)(null),O=!1,k=";
+const { advancedStateBefore } = compatibilityProfile;
 const menuViewBefore = '"data-view":i,style:N';
 const menuViewAfter = '"data-view":`simple`,style:N';
-if (!source.includes(advancedStateBefore) || !source.includes(menuViewBefore)) {
+if (!source.includes(menuViewBefore)) {
   throw new Error("The advanced-view state wiring was not found.");
 }
 source = source
-  .replace(advancedStateBefore, advancedStateAfter)
+  .replace(advancedStateBefore, advancedStateBefore.replace("i===`advanced`", "!1"))
   .replace(menuViewBefore, menuViewAfter);
 
 const originalChunk = fs.readFileSync(chunkSourcePath);
