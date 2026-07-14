@@ -138,6 +138,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
 
 If the script reports that a chunk or function cannot be found, the Codex version has probably changed. Update the search markers in `tools/build-inplace-asar.mjs` and rebuild.
 
+The builder discovers hashed model-selector and React DOM asset filenames automatically. Minified component names can still change between Codex releases; version-specific mappings live in `tools/selector-compatibility.mjs` and are covered by `npm run check`.
+
 ## Advantages
 
 | Area | Benefit |
@@ -173,6 +175,10 @@ Quit Codex from the Windows notification-area icon. Closing only the main window
 ### The selector does not show new models
 
 Rebuild from the newest official archive. This project does not manufacture a model list: it reuses the catalog exposed by Codex.
+
+### The application shows “An error occurred” after a Codex update
+
+Run `npm run check`, extract `app.asar` from the current official installation, and rebuild. React error 130 usually means Codex renamed a minified component used by the selector patch. Update the matching profile in `tools/selector-compatibility.mjs`; do not map JSX targets to JSX-runtime or lazy-loader objects.
 
 ### I want to return to official Codex
 
