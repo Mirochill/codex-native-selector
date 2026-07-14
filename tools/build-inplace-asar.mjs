@@ -25,29 +25,57 @@ const findSingleAsset = (pattern, description) => {
   }
   return matches[0];
 };
-const chunkFileName = findSingleAsset(
-  /^model-and-reasoning-dropdown-.*\.js$/u,
-  "model selector",
-);
-const reactDomFileName = findSingleAsset(/^react-dom-.*\.js$/u, "React DOM");
+const assetSources = fs
+  .readdirSync(assetsRoot)
+  .filter((name) => name.endsWith(".js"))
+  .map((name) => ({
+    name,
+    source: fs.readFileSync(path.join(assetsRoot, name), "utf8"),
+  }));
+const selectorMatches = assetSources.flatMap(({ name, source: assetSource }) => {
+  try {
+    return [
+      {
+        name,
+        profile: selectSelectorCompatibilityProfile(assetSource),
+        source: assetSource,
+      },
+    ];
+  } catch {
+    return [];
+  }
+});
+if (selectorMatches.length !== 1) {
+  throw new Error(
+    `Expected one compatible model selector asset, found ${selectorMatches.length}.`,
+  );
+}
+const [{ name: chunkFileName, profile: compatibilityProfile }] = selectorMatches;
+for (const marker of compatibilityProfile.assetMarkers ?? []) {
+  if (
+    !assetSources.some(({ source: assetSource }) => assetSource.includes(marker))
+  ) {
+    throw new Error(`Required selector asset marker not found: ${marker}`);
+  }
+}
 const chunkRelativePath = `webview/assets/${chunkFileName}`;
 const chunkSourcePath = path.join(extractedRoot, chunkRelativePath);
 
 let source = fs.readFileSync(chunkSourcePath, "utf8");
-source = `import{t as Cp}from"./${reactDomFileName}";${source}`;
-
-const compatibilityProfile = selectSelectorCompatibilityProfile(source);
+if (compatibilityProfile.reactDomImport) {
+  const reactDomFileName = findSingleAsset(
+    compatibilityProfile.reactDomAssetPattern,
+    "React DOM",
+  );
+  source = `${compatibilityProfile.reactDomImport(reactDomFileName)}${source}`;
+}
 source = source.replace(
   compatibilityProfile.catalogBefore,
   compatibilityProfile.catalogAfter,
 );
 
-const fieldsBefore = "supportedReasoningEfforts:n})=>{let r=";
-const fieldsAfter =
-  "supportedReasoningEfforts:n,defaultReasoningEffort:ct})=>{let r=";
-const valueBefore = "modelLabel:r,reasoningEffort:e}))})??[]}";
-const valueAfter =
-  "modelLabel:r,reasoningEffort:e,defaultReasoningEffort:ct}))})??[]}";
+const { fieldsBefore, fieldsAfter, valueBefore, valueAfter } =
+  compatibilityProfile;
 if (!source.includes(fieldsBefore) || !source.includes(valueBefore)) {
   throw new Error("The original model selection mapping was not found.");
 }
@@ -93,21 +121,17 @@ if (controlsStart < 0 || controlsEnd < 0) {
 }
 source =
   source.slice(0, controlsStart) +
-  `function ${controlsName}(e){let{ref:t}=e;return(0,Q.jsx)(\`div\`,{className:\`codex-controls-placeholder\`,ref:t})}` +
+  `function ${controlsName}(e){let{ref:t}=e;return(0,${compatibilityProfile.controlsJsxRuntime}.jsx)(\`div\`,{className:\`codex-controls-placeholder\`,ref:t})}` +
   source.slice(controlsEnd);
 
-const sliderPropsBefore =
-  "fastModeEnabled:H,onDragToMax:L,onSelectComplete:a,onSelectPower:z,powerSelections:l,selectedPowerSelection:u,shouldReduceMotion:h,transitionsReady:C";
-const sliderPropsAfter =
-  "fastModeEnabled:H,onDragToMax:L,onSelectComplete:a,onSelectPower:z,onSelectServiceTier:s,powerSelections:l,selectedPowerSelection:u,serviceTierOptions:f,serviceTierOptionsLoading:p,shouldReduceMotion:h,transitionsReady:C";
+const { sliderPropsBefore, sliderPropsAfter } = compatibilityProfile;
 if (!source.includes(sliderPropsBefore)) {
   throw new Error("The compact selector prop wiring was not found.");
 }
 source = source.replace(sliderPropsBefore, sliderPropsAfter);
 
 const { advancedStateBefore } = compatibilityProfile;
-const menuViewBefore = '"data-view":i,style:N';
-const menuViewAfter = '"data-view":`simple`,style:N';
+const { menuViewBefore, menuViewAfter } = compatibilityProfile;
 if (!source.includes(menuViewBefore)) {
   throw new Error("The advanced-view state wiring was not found.");
 }
@@ -181,6 +205,10 @@ const verifiedHash = crypto
 if (verifiedHash !== verifiedEntry.integrity.hash || verifiedHash !== newHash) {
   throw new Error("Patched chunk integrity verification failed.");
 }
+const asarHeaderSha256 = crypto
+  .createHash("sha256")
+  .update(JSON.stringify(verification.header))
+  .digest("hex");
 
 console.log(
   JSON.stringify(
@@ -193,6 +221,7 @@ console.log(
       chunkOffset: entry.offset,
       chunkSha256: newHash,
       headerSize: rawHeader.headerSize,
+      asarHeaderSha256,
     },
     null,
     2,
