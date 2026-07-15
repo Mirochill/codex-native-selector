@@ -25,29 +25,57 @@ const findSingleAsset = (pattern, description) => {
   }
   return matches[0];
 };
-const chunkFileName = findSingleAsset(
-  /^model-and-reasoning-dropdown-.*\.js$/u,
-  "model selector",
-);
-const reactDomFileName = findSingleAsset(/^react-dom-.*\.js$/u, "React DOM");
+const assetSources = fs
+  .readdirSync(assetsRoot)
+  .filter((name) => name.endsWith(".js"))
+  .map((name) => ({
+    name,
+    source: fs.readFileSync(path.join(assetsRoot, name), "utf8"),
+  }));
+const selectorMatches = assetSources.flatMap(({ name, source: assetSource }) => {
+  try {
+    return [
+      {
+        name,
+        profile: selectSelectorCompatibilityProfile(assetSource),
+        source: assetSource,
+      },
+    ];
+  } catch {
+    return [];
+  }
+});
+if (selectorMatches.length !== 1) {
+  throw new Error(
+    `Expected one compatible model selector asset, found ${selectorMatches.length}.`,
+  );
+}
+const [{ name: chunkFileName, profile: compatibilityProfile }] = selectorMatches;
+for (const marker of compatibilityProfile.assetMarkers ?? []) {
+  if (
+    !assetSources.some(({ source: assetSource }) => assetSource.includes(marker))
+  ) {
+    throw new Error(`Required selector asset marker not found: ${marker}`);
+  }
+}
 const chunkRelativePath = `webview/assets/${chunkFileName}`;
 const chunkSourcePath = path.join(extractedRoot, chunkRelativePath);
 
 let source = fs.readFileSync(chunkSourcePath, "utf8");
-source = `import{t as Cp}from"./${reactDomFileName}";${source}`;
-
-const compatibilityProfile = selectSelectorCompatibilityProfile(source);
+if (compatibilityProfile.reactDomImport) {
+  const reactDomFileName = findSingleAsset(
+    compatibilityProfile.reactDomAssetPattern,
+    "React DOM",
+  );
+  source = `${compatibilityProfile.reactDomImport(reactDomFileName)}${source}`;
+}
 source = source.replace(
   compatibilityProfile.catalogBefore,
   compatibilityProfile.catalogAfter,
 );
 
-const fieldsBefore = "supportedReasoningEfforts:n})=>{let r=";
-const fieldsAfter =
-  "supportedReasoningEfforts:n,defaultReasoningEffort:ct})=>{let r=";
-const valueBefore = "modelLabel:r,reasoningEffort:e}))})??[]}";
-const valueAfter =
-  "modelLabel:r,reasoningEffort:e,defaultReasoningEffort:ct}))})??[]}";
+const { fieldsBefore, fieldsAfter, valueBefore, valueAfter } =
+  compatibilityProfile;
 if (!source.includes(fieldsBefore) || !source.includes(valueBefore)) {
   throw new Error("The original model selection mapping was not found.");
 }
@@ -64,11 +92,11 @@ if (componentStart < 0 || componentEnd < 0) {
 }
 
 function compactSelectorTemplate() {/*
-function Cs(){if(document.getElementById(`codex-native-selector-style`))return;let e=document.createElement(`style`);e.id=`codex-native-selector-style`,e.textContent=`._SimpleView_15yqt_93.codex-native{min-height:72px;padding:5px 8px 7px;--a:var(--color-token-charts-blue)}.codex-native[data-v=sol]{--a:#f2c14e}.codex-native[data-v=terra]{--a:#62c1b5}.codex-native[data-v=luna]{--a:#9c8cff}.codex-native[data-v=mini]{--a:#77a7ff}.codex-tabs{height:29px;display:flex;gap:4px;margin:0 0 4px;padding:0 2px;border-bottom:1px solid var(--color-token-border)}.codex-tabs button{position:relative;height:29px;padding:3px 8px;color:var(--color-token-text-tertiary);font:inherit;font-size:12px;background:0 0;border:0;border-radius:6px 6px 0 0;cursor:var(--cursor-interaction)}.codex-tabs button:hover{background:var(--color-token-list-hover-background)}.codex-tabs button[data-s=true]{color:var(--a);font-weight:600}.codex-tabs button[data-s=true]:after{content:"";position:absolute;height:2px;inset:27px 7px 0;background:var(--a);border-radius:9px}.codex-native ._Range_m3zgh_451{background:var(--a)}.codex-native ._Thumb_m3zgh_23{box-shadow:0 0 8px color-mix(in srgb,var(--a) 45%,transparent)}`,document.head.append(e)}
-function Cf(e){let t=e.match(/^gpt-(\d+\.\d+)(?:-|$)/u);return t?.[1]??e}
-function Cv(e,t){let n=`gpt-${t}`;return e===n?`Full`:(e.startsWith(`${n}-`)?e.slice(n.length+1):e).split(`-`).map(e=>e?e[0].toUpperCase()+e.slice(1):e).join(` `)}
-function Ck(e,t){let n=`gpt-${t}`;return e===n?`full`:e.startsWith(`${n}-`)?e.slice(n.length+1):`default`}
-function Ve(e){let{active:t,fastModeEnabled:n,onDragToMax:r,onSelectPower:i,powerSelections:a,selectedPowerSelection:o,shouldReduceMotion:s,transitionsReady:l}=e;if(o==null)return(0,Z.jsx)(`div`,{className:X.SimpleView});Cs();let u=Cf(o.model),d=[...new Set(a.filter(e=>Cf(e.model)===u).map(e=>e.model))],f=a.filter(e=>e.model===o.model),p=f.map(e=>({id:e.id,isMax:e.reasoningEffort===`ultra`,label:e.modelLabel})),m=e=>{let t=a.find(t=>t.id===e.id);t&&i(t)},h=e=>{let t=a.filter(t=>t.model===e),n=t.find(e=>e.reasoningEffort===o.reasoningEffort)??t.find(e=>e.reasoningEffort===e.defaultReasoningEffort)??t[0];n&&i(n)},g=d.length>1?(0,Z.jsx)(`div`,{className:`codex-tabs`,role:`tablist`,children:d.map(e=>(0,Z.jsx)(`button`,{type:`button`,role:`tab`,"aria-selected":e===o.model,"data-s":e===o.model,onPointerDown:e=>e.preventDefault(),onClick:t=>{t.preventDefault(),t.stopPropagation(),h(e)},children:Cv(e,u)},e))}):null;return(0,Z.jsxs)(`div`,{className:`${X.SimpleView} codex-native`,"data-v":Ck(o.model,u),children:[g,(0,Z.jsx)(ye,{active:t,fastModeEnabled:n,keyboardControlFocused:!1,onDragToMax:r,onSelectOption:m,options:p,selectedOptionId:o.id,shouldReduceMotion:s,transitionsReady:l})]})}
+function codexNativeSelectorStyle(){if(document.getElementById(`codex-native-selector-style`))return;let e=document.createElement(`style`);e.id=`codex-native-selector-style`,e.textContent=`._SimpleView_15yqt_93.codex-native{min-height:72px;padding:5px 8px 7px;--a:var(--color-token-charts-blue)}.codex-native[data-v=sol]{--a:#f2c14e}.codex-native[data-v=terra]{--a:#62c1b5}.codex-native[data-v=luna]{--a:#9c8cff}.codex-native[data-v=mini]{--a:#77a7ff}.codex-tabs{height:29px;display:flex;gap:4px;margin:0 0 4px;padding:0 2px;border-bottom:1px solid var(--color-token-border)}.codex-tabs button{position:relative;height:29px;padding:3px 8px;color:var(--color-token-text-tertiary);font:inherit;font-size:12px;background:0 0;border:0;border-radius:6px 6px 0 0;cursor:var(--cursor-interaction)}.codex-tabs button:hover{background:var(--color-token-list-hover-background)}.codex-tabs button[data-s=true]{color:var(--a);font-weight:600}.codex-tabs button[data-s=true]:after{content:"";position:absolute;height:2px;inset:27px 7px 0;background:var(--a);border-radius:9px}.codex-native ._Range_m3zgh_451{background:var(--a)}.codex-native ._Thumb_m3zgh_23{box-shadow:0 0 8px color-mix(in srgb,var(--a) 45%,transparent)}`,document.head.append(e)}
+function codexNativeModelFamily(e){let t=e.match(/^gpt-(\d+\.\d+)(?:-|$)/u);return t?.[1]??e}
+function codexNativeVariantLabel(e,t){let n=`gpt-${t}`;return e===n?`Full`:(e.startsWith(`${n}-`)?e.slice(n.length+1):e).split(`-`).map(e=>e?e[0].toUpperCase()+e.slice(1):e).join(` `)}
+function codexNativeVariantKey(e,t){let n=`gpt-${t}`;return e===n?`full`:e.startsWith(`${n}-`)?e.slice(n.length+1):`default`}
+function Ve(e){let{active:t,fastModeEnabled:n,onDragToMax:r,onSelectPower:i,powerSelections:a,selectedPowerSelection:o,shouldReduceMotion:s,transitionsReady:l}=e;if(o==null)return(0,Z.jsx)(`div`,{className:X.SimpleView});codexNativeSelectorStyle();let u=codexNativeModelFamily(o.model),d=[...new Set(a.filter(e=>codexNativeModelFamily(e.model)===u).map(e=>e.model))],f=a.filter(e=>e.model===o.model),p=f.map(e=>({id:e.id,isMax:e.reasoningEffort===`ultra`,label:e.modelLabel})),m=e=>{let t=a.find(t=>t.id===e.id);t&&i(t)},h=e=>{let t=a.filter(t=>t.model===e),n=t.find(e=>e.reasoningEffort===o.reasoningEffort)??t.find(e=>e.reasoningEffort===e.defaultReasoningEffort)??t[0];n&&i(n)},g=d.length>1?(0,Z.jsx)(`div`,{className:`codex-tabs`,role:`tablist`,children:d.map(e=>(0,Z.jsx)(`button`,{type:`button`,role:`tab`,"aria-selected":e===o.model,"data-s":e===o.model,onPointerDown:e=>e.preventDefault(),onClick:t=>{t.preventDefault(),t.stopPropagation(),h(e)},children:codexNativeVariantLabel(e,u)},e))}):null;return(0,Z.jsxs)(`div`,{className:`${X.SimpleView} codex-native`,"data-v":codexNativeVariantKey(o.model,u),children:[g,(0,Z.jsx)(ye,{active:t,fastModeEnabled:n,keyboardControlFocused:!1,onDragToMax:r,onSelectOption:m,options:p,selectedOptionId:o.id,shouldReduceMotion:s,transitionsReady:l})]})}
 */}
 
 const compactSelector = adaptCompactSelector(
@@ -93,21 +121,17 @@ if (controlsStart < 0 || controlsEnd < 0) {
 }
 source =
   source.slice(0, controlsStart) +
-  `function ${controlsName}(e){let{ref:t}=e;return(0,Q.jsx)(\`div\`,{className:\`codex-controls-placeholder\`,ref:t})}` +
+  `function ${controlsName}(e){let{ref:t}=e;return(0,${compatibilityProfile.controlsJsxRuntime}.jsx)(\`div\`,{className:\`codex-controls-placeholder\`,ref:t})}` +
   source.slice(controlsEnd);
 
-const sliderPropsBefore =
-  "fastModeEnabled:H,onDragToMax:L,onSelectComplete:a,onSelectPower:z,powerSelections:l,selectedPowerSelection:u,shouldReduceMotion:h,transitionsReady:C";
-const sliderPropsAfter =
-  "fastModeEnabled:H,onDragToMax:L,onSelectComplete:a,onSelectPower:z,onSelectServiceTier:s,powerSelections:l,selectedPowerSelection:u,serviceTierOptions:f,serviceTierOptionsLoading:p,shouldReduceMotion:h,transitionsReady:C";
+const { sliderPropsBefore, sliderPropsAfter } = compatibilityProfile;
 if (!source.includes(sliderPropsBefore)) {
   throw new Error("The compact selector prop wiring was not found.");
 }
 source = source.replace(sliderPropsBefore, sliderPropsAfter);
 
 const { advancedStateBefore } = compatibilityProfile;
-const menuViewBefore = '"data-view":i,style:N';
-const menuViewAfter = '"data-view":`simple`,style:N';
+const { menuViewBefore, menuViewAfter } = compatibilityProfile;
 if (!source.includes(menuViewBefore)) {
   throw new Error("The advanced-view state wiring was not found.");
 }
@@ -181,6 +205,10 @@ const verifiedHash = crypto
 if (verifiedHash !== verifiedEntry.integrity.hash || verifiedHash !== newHash) {
   throw new Error("Patched chunk integrity verification failed.");
 }
+const asarHeaderSha256 = crypto
+  .createHash("sha256")
+  .update(JSON.stringify(verification.header))
+  .digest("hex");
 
 console.log(
   JSON.stringify(
@@ -193,6 +221,7 @@ console.log(
       chunkOffset: entry.offset,
       chunkSha256: newHash,
       headerSize: rawHeader.headerSize,
+      asarHeaderSha256,
     },
     null,
     2,
