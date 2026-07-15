@@ -40,7 +40,7 @@ test("rejects unknown and ambiguous bundle fingerprints", () => {
       selectSelectorCompatibilityProfile(
         selectorCompatibilityProfiles.map(sourceFor).join(";"),
       ),
-    /found 2/u,
+    new RegExp(`found ${selectorCompatibilityProfiles.length}`, "u"),
   );
 });
 
@@ -77,6 +77,27 @@ test("maps Codex 26.707 icons and slider to renderable component symbols", () =>
   assert.match(selector, /\(0,Z\.jsx\)\(nt,/u);
   assert.match(selector, /\(0,Z\.jsx\)\(be,/u);
   assert.doesNotMatch(selector, /\(0,Z\.jsx\)\((?:Qe|tt|ye),/u);
+});
+
+test("maps the macOS 26.707 selector to its split-bundle symbols", () => {
+  const selector = adaptCompactSelector(template, selectorCompatibilityProfiles[2]);
+
+  assert.match(selector, /function tU\(e\)\{/u);
+  assert.match(selector, /\(0,aU\.useState\)/u);
+  assert.match(selector, /l\?\.find\(yU\)/u);
+  assert.match(selector, /l\?\.find\(bU\)/u);
+  assert.match(selector, /\(0,oU\.jsx\)\(pU,/u);
+  assert.match(selector, /\(0,oU\.jsx\)\(gU,/u);
+  assert.match(selector, /\(0,oU\.jsx\)\(MH,/u);
+  assert.match(selector, /\$H\.SimpleView/u);
+  assert.match(selector, /yu\.createPortal/u);
+  assert.match(selector, /\._SimpleView_1k6l7_47/u);
+  assert.match(selector, /\._Range_3jngk_226/u);
+  assert.match(selector, /\._Thumb_3jngk_12/u);
+  assert.match(selector, /\._Mask_notip_14/u);
+  assert.match(selector, /\._Burst_1pz9e_76/u);
+  assert.doesNotMatch(selector, /_(?:15yqt|m3zgh|vx1zu|1ibg9)_/u);
+  assert.doesNotMatch(selector, /(?:Ge|Z|X|Cp\(\)|Qe|tt|ye)[.()]/u);
 });
 
 test("fails closed when the selector template no longer matches", () => {
