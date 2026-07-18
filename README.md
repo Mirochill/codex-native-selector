@@ -125,18 +125,9 @@ $installApp
 
 If Windows denies access to `WindowsApps`, use the installation path shown in Codex's properties or enter the path manually.
 
-#### 3. Extract the official archive temporarily
+#### 3. Build the customized copy
 
-This reads the local application but does not modify the official installation:
-
-```powershell
-Remove-Item .\work\asar-extracted -Recurse -Force -ErrorAction SilentlyContinue
-npx --yes @electron/asar extract `
-  (Join-Path $installApp 'resources\app.asar') `
-  .\work\asar-extracted
-```
-
-#### 4. Build the customized copy
+The script extracts the official archive into `work\asar-extracted` and patches a copy automatically, without modifying the official installation:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
@@ -150,7 +141,7 @@ The result is generated in:
 outputs\Codex-Native-Selector\
 ```
 
-#### 5. Launch Codex Native Selector
+#### 4. Launch Codex Native Selector
 
 Close official Codex, including its tray icon in the Windows notification area, then launch:
 
@@ -170,13 +161,9 @@ On macOS, quit Codex and rerun:
 ./tools/build-macos.sh
 ```
 
-On Windows, re-extract the updated archive and rebuild:
+On Windows, rebuild from the updated installation (the script always re-extracts the current archive):
 
 ```powershell
-Remove-Item .\work\asar-extracted -Recurse -Force -ErrorAction SilentlyContinue
-npx --yes @electron/asar extract `
-  (Join-Path $installApp 'resources\app.asar') `
-  .\work\asar-extracted
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -File .\tools\build-portable.ps1 `
   -InstallApp $installApp
@@ -247,10 +234,14 @@ Close the customized copy, then launch Codex from the Start menu. No uninstall o
 
 ```text
 tools/
-├── build-portable.ps1       # Copies the local installation and creates the launcher
-├── build-macos.sh           # Builds and ad-hoc signs a separate macOS app bundle
-├── build-inplace-asar.mjs   # Applies the targeted app.asar patch
-└── selector-v2.js.txt        # Customized selector component
+├── build-portable.ps1              # Extracts, patches, and copies the local installation, then creates the launcher
+├── build-macos.sh                  # Builds and ad-hoc signs a separate macOS app bundle
+├── build-inplace-asar.mjs          # Applies the targeted app.asar patch
+├── selector-compatibility.mjs      # Version-specific bundle fingerprints and symbol mappings
+├── selector-compatibility.test.mjs # Fingerprint and selector mapping tests
+└── selector-v2.js.txt              # Customized selector component
+
+.github/workflows/check.yml         # Selector checks and script syntax checks
 
 README.md
 LICENSE
