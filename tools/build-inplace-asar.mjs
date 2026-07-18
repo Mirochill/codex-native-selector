@@ -16,6 +16,11 @@ const sourceArchive = path.resolve(process.argv[2] ?? "source/app/resources/app.
 const destinationArchive = path.resolve(
   process.argv[3] ?? "outputs/Codex-Native-Selector/app/resources/app.asar",
 );
+if (sourceArchive === destinationArchive) {
+  throw new Error(
+    "Source and destination archives must differ; the official installation must not be modified.",
+  );
+}
 const extractedRoot = path.resolve(process.argv[5] ?? "work/asar-extracted");
 const assetsRoot = path.join(extractedRoot, "webview/assets");
 const findSingleAsset = (pattern, description) => {
@@ -90,14 +95,6 @@ const componentEnd = source.indexOf(
 if (componentStart < 0 || componentEnd < 0) {
   throw new Error("The original compact selector component was not found.");
 }
-
-function compactSelectorTemplate() {/*
-function codexNativeSelectorStyle(){if(document.getElementById(`codex-native-selector-style`))return;let e=document.createElement(`style`);e.id=`codex-native-selector-style`,e.textContent=`._SimpleView_15yqt_93.codex-native{min-height:72px;padding:5px 8px 7px;--a:var(--color-token-charts-blue)}.codex-native[data-v=sol]{--a:#f2c14e}.codex-native[data-v=terra]{--a:#62c1b5}.codex-native[data-v=luna]{--a:#9c8cff}.codex-native[data-v=mini]{--a:#77a7ff}.codex-tabs{height:29px;display:flex;gap:4px;margin:0 0 4px;padding:0 2px;border-bottom:1px solid var(--color-token-border)}.codex-tabs button{position:relative;height:29px;padding:3px 8px;color:var(--color-token-text-tertiary);font:inherit;font-size:12px;background:0 0;border:0;border-radius:6px 6px 0 0;cursor:var(--cursor-interaction)}.codex-tabs button:hover{background:var(--color-token-list-hover-background)}.codex-tabs button[data-s=true]{color:var(--a);font-weight:600}.codex-tabs button[data-s=true]:after{content:"";position:absolute;height:2px;inset:27px 7px 0;background:var(--a);border-radius:9px}.codex-native ._Range_m3zgh_451{background:var(--a)}.codex-native ._Thumb_m3zgh_23{box-shadow:0 0 8px color-mix(in srgb,var(--a) 45%,transparent)}`,document.head.append(e)}
-function codexNativeModelFamily(e){let t=e.match(/^gpt-(\d+\.\d+)(?:-|$)/u);return t?.[1]??e}
-function codexNativeVariantLabel(e,t){let n=`gpt-${t}`;return e===n?`Full`:(e.startsWith(`${n}-`)?e.slice(n.length+1):e).split(`-`).map(e=>e?e[0].toUpperCase()+e.slice(1):e).join(` `)}
-function codexNativeVariantKey(e,t){let n=`gpt-${t}`;return e===n?`full`:e.startsWith(`${n}-`)?e.slice(n.length+1):`default`}
-function Ve(e){let{active:t,fastModeEnabled:n,onDragToMax:r,onSelectPower:i,powerSelections:a,selectedPowerSelection:o,shouldReduceMotion:s,transitionsReady:l}=e;if(o==null)return(0,Z.jsx)(`div`,{className:X.SimpleView});codexNativeSelectorStyle();let u=codexNativeModelFamily(o.model),d=[...new Set(a.filter(e=>codexNativeModelFamily(e.model)===u).map(e=>e.model))],f=a.filter(e=>e.model===o.model),p=f.map(e=>({id:e.id,isMax:e.reasoningEffort===`ultra`,label:e.modelLabel})),m=e=>{let t=a.find(t=>t.id===e.id);t&&i(t)},h=e=>{let t=a.filter(t=>t.model===e),n=t.find(e=>e.reasoningEffort===o.reasoningEffort)??t.find(e=>e.reasoningEffort===e.defaultReasoningEffort)??t[0];n&&i(n)},g=d.length>1?(0,Z.jsx)(`div`,{className:`codex-tabs`,role:`tablist`,children:d.map(e=>(0,Z.jsx)(`button`,{type:`button`,role:`tab`,"aria-selected":e===o.model,"data-s":e===o.model,onPointerDown:e=>e.preventDefault(),onClick:t=>{t.preventDefault(),t.stopPropagation(),h(e)},children:codexNativeVariantLabel(e,u)},e))}):null;return(0,Z.jsxs)(`div`,{className:`${X.SimpleView} codex-native`,"data-v":codexNativeVariantKey(o.model,u),children:[g,(0,Z.jsx)(ye,{active:t,fastModeEnabled:n,keyboardControlFocused:!1,onDragToMax:r,onSelectOption:m,options:p,selectedOptionId:o.id,shouldReduceMotion:s,transitionsReady:l})]})}
-*/}
 
 const compactSelector = adaptCompactSelector(
   fs
