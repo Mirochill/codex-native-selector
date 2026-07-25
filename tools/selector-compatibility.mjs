@@ -145,6 +145,10 @@ export const selectorCompatibilityProfiles = [
   },
   {
     name: "codex-26.721",
+    catalogBefore:
+      "function zos(e,{includeUltraInSlider:t=!1,removeXHigh:n=!1}={}){let r=Kos((t?[...Jos,Yos]:Jos).filter(({reasoningEffort:e})=>!n||e!==`xhigh`),e);if(r.length>=3)return r;let i=Kos(Xos.filter(({reasoningEffort:e})=>!n||e!==`xhigh`),e);return i.length>=3?i:[]}",
+    catalogAfter:
+      "function zos(e,{includeUltraInSlider:t=!1,removeXHigh:n=!1}={}){return Hos(e).filter(({reasoningEffort:e})=>(t||e!==`ultra`)&&(!n||e!==`xhigh`))}",
     componentName: "wss",
     nextComponentName: "Tss",
     controlsName: "Bss",

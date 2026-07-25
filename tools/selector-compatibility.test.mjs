@@ -101,8 +101,31 @@ test("maps the macOS 26.707 selector to its split-bundle symbols", () => {
 });
 
 test("maps Codex 26.721 controls and current slider styles", () => {
-  const selector = adaptCompactSelector(template, selectorCompatibilityProfiles[3]);
+  const profile = selectorCompatibilityProfiles[3];
+  const selector = adaptCompactSelector(template, profile);
+  const catalog = Function(
+    "Hos",
+    `return (${profile.catalogAfter.replace("function zos", "function")})`,
+  )((models) => models);
+  const models = [
+    { model: "gpt-5.6-luna", reasoningEffort: "medium" },
+    { model: "gpt-5.5", reasoningEffort: "low" },
+    { model: "gpt-5.6-sol", reasoningEffort: "ultra" },
+    { model: "gpt-5.6-sol", reasoningEffort: "xhigh" },
+  ];
 
+  assert.deepEqual(
+    catalog(models).map(
+      ({ model, reasoningEffort }) => `${model}:${reasoningEffort}`,
+    ),
+    ["gpt-5.6-luna:medium", "gpt-5.5:low", "gpt-5.6-sol:xhigh"],
+  );
+  assert.deepEqual(
+    catalog(models, { includeUltraInSlider: true, removeXHigh: true }).map(
+      ({ model, reasoningEffort }) => `${model}:${reasoningEffort}`,
+    ),
+    ["gpt-5.6-luna:medium", "gpt-5.5:low", "gpt-5.6-sol:ultra"],
+  );
   assert.match(selector, /function wss\(e\)\{/u);
   assert.match(selector, /\(0,Oss\.useState\)/u);
   assert.match(selector, /l\?\.find\(Vss\)/u);
