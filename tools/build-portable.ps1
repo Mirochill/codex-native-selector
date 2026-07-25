@@ -5,7 +5,7 @@
 )
 
 $ErrorActionPreference = 'Stop'
-$selectorPatchVersion = '8'
+$selectorPatchVersion = '9'
 $workspace = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 if ([string]::IsNullOrWhiteSpace($Destination)) {
     $Destination = Join-Path $workspace 'outputs\Codex-Native-Selector'

@@ -136,10 +136,36 @@ test("maps Codex 26.721 controls and current slider styles", () => {
   assert.match(selector, /YX\.SimpleView/u);
   assert.match(selector, /Su\(\)\.createPortal/u);
   assert.match(selector, /\._SimpleView_1k2a9_93/u);
+  assert.match(selector, /codex-native-selected-version-style/u);
+  assert.match(selector, /codexNativeSelectPower/u);
   assert.doesNotMatch(
     selector,
     /(?:Ge\.|\(0,Z\.|className:X\.|Cp\(\)\.|Qe[,)]|tt[,)]|ye[,)])/u,
   );
+});
+
+test("remembers the last effort for each exact model", () => {
+  const source = template.match(/^function codexNativeSelectPower.*$/mu)?.[0];
+  assert.ok(source);
+  const values = new Map();
+  const selectPower = Function(
+    "localStorage",
+    `${source};return codexNativeSelectPower`,
+  )({
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, value),
+  });
+  const options = [
+    { model: "gpt-5.6-sol", reasoningEffort: "low" },
+    { model: "gpt-5.6-sol", reasoningEffort: "high" },
+    { model: "gpt-5.6-terra", reasoningEffort: "low" },
+    { model: "gpt-5.6-terra", reasoningEffort: "high" },
+  ];
+
+  assert.equal(selectPower(options[3], options[1], options), options[3]);
+  assert.equal(selectPower(options[2], options[3], options), options[2]);
+  assert.equal(selectPower(options[0], options[2], options), options[1]);
+  assert.equal(selectPower(options[3], options[1], options), options[2]);
 });
 
 test("fails closed when the selector template no longer matches", () => {
