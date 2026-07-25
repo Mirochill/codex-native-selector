@@ -176,7 +176,7 @@ export const selectorCompatibilityProfiles = [
     sliderPropsBefore:
       "fastModeEnabled:G,onDragToMax:I,onSelectComplete:a,onSelectPower:R,powerSelections:l,selectedPowerSelection:u,shouldReduceMotion:h,transitionsReady:S",
     sliderPropsAfter:
-      "fastModeEnabled:G,onDragToMax:I,onSelectComplete:a,onSelectPower:R,onSelectServiceTier:s,powerSelections:l,selectedPowerSelection:u,serviceTierOptions:f,serviceTierOptionsLoading:p,shouldReduceMotion:h,transitionsReady:S",
+      "fastModeEnabled:G,onDragToMax:I,onSelectComplete:a,onSelectPower:e=>R(codexNativeSelectPower(e,u,l)),onSelectServiceTier:s,powerSelections:l,selectedPowerSelection:u,serviceTierOptions:f,serviceTierOptionsLoading:p,shouldReduceMotion:h,transitionsReady:S",
     menuViewBefore: '"data-view":i,style:M',
     menuViewAfter: '"data-view":`simple`,style:M',
     runtimeMarkers: [
