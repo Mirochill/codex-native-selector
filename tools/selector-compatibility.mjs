@@ -143,11 +143,53 @@ export const selectorCompatibilityProfiles = [
       "_SimpleView_1k6l7_47",
     ],
   },
+  {
+    name: "codex-26.721",
+    componentName: "wss",
+    nextComponentName: "Tss",
+    controlsName: "Bss",
+    nextControlsName: "Vss",
+    advancedStateBefore: "D=i===`advanced`,O=",
+    hooksName: "Oss",
+    fastPredicate: "Vss",
+    standardPredicate: "Hss",
+    fastIcon: "Fss",
+    standardIcon: "Rss",
+    sliderComponent: "nss",
+    jsxRuntime: "XX",
+    stylesName: "YX",
+    portalExpression: "Su().createPortal",
+    controlsJsxRuntime: "ZX",
+    templateReplacements: [
+      ["._SimpleView_15yqt_93", "._SimpleView_1k2a9_93"],
+    ],
+    assetMarkers: [
+      "_Range_m3zgh_451",
+      "_Thumb_m3zgh_23",
+      "_Mask_vx1zu_27",
+      "_Burst_1ibg9_151",
+    ],
+    sliderPropsBefore:
+      "fastModeEnabled:G,onDragToMax:I,onSelectComplete:a,onSelectPower:R,powerSelections:l,selectedPowerSelection:u,shouldReduceMotion:h,transitionsReady:S",
+    sliderPropsAfter:
+      "fastModeEnabled:G,onDragToMax:I,onSelectComplete:a,onSelectPower:R,onSelectServiceTier:s,powerSelections:l,selectedPowerSelection:u,serviceTierOptions:f,serviceTierOptionsLoading:p,shouldReduceMotion:h,transitionsReady:S",
+    menuViewBefore: '"data-view":i,style:M',
+    menuViewAfter: '"data-view":`simple`,style:M',
+    runtimeMarkers: [
+      "Oss=r(o(),1)",
+      "function Vss(e){let{iconKind:t}=e;return t===`fast`}",
+      "function Hss(e){let{value:t}=e;return t==null}",
+      "(0,ZX.jsx)(Fss,",
+      "(0,ZX.jsx)(Rss,",
+      "(0,XX.jsx)(nss,{active:",
+      "_SimpleView_1k2a9_93",
+    ],
+  },
 ];
 
 function sourceMarkers(profile) {
   return [
-    profile.catalogBefore,
+    ...(profile.catalogBefore ? [profile.catalogBefore] : []),
     `function ${profile.componentName}(e){`,
     `function ${profile.nextComponentName}(e){`,
     `function ${profile.controlsName}(e){`,
@@ -178,8 +220,8 @@ export function adaptCompactSelector(template, profile) {
     ["(0,Z.jsx)(Qe,", `(0,Z.jsx)(${profile.fastIcon},`],
     ["(0,Z.jsx)(tt,", `(0,Z.jsx)(${profile.standardIcon},`],
     ["(0,Z.jsx)(ye,", `(0,Z.jsx)(${profile.sliderComponent},`],
-    ["(0,Z.", `(0,${profile.jsxRuntime}.`],
     ["X.", `${profile.stylesName}.`],
+    ["(0,Z.", `(0,${profile.jsxRuntime}.`],
     ["Cp().createPortal", profile.portalExpression],
     ...(profile.templateReplacements ?? []),
   ];

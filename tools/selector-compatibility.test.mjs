@@ -14,7 +14,7 @@ const template = readFileSync(
 
 function sourceFor(profile) {
   return [
-    profile.catalogBefore,
+    ...(profile.catalogBefore ? [profile.catalogBefore] : []),
     `function ${profile.componentName}(e){}`,
     `function ${profile.nextComponentName}(e){}`,
     `function ${profile.controlsName}(e){}`,
@@ -98,6 +98,25 @@ test("maps the macOS 26.707 selector to its split-bundle symbols", () => {
   assert.match(selector, /\._Burst_1pz9e_76/u);
   assert.doesNotMatch(selector, /_(?:15yqt|m3zgh|vx1zu|1ibg9)_/u);
   assert.doesNotMatch(selector, /(?:Ge|Z|X|Cp\(\)|Qe|tt|ye)[.()]/u);
+});
+
+test("maps Codex 26.721 controls and current slider styles", () => {
+  const selector = adaptCompactSelector(template, selectorCompatibilityProfiles[3]);
+
+  assert.match(selector, /function wss\(e\)\{/u);
+  assert.match(selector, /\(0,Oss\.useState\)/u);
+  assert.match(selector, /l\?\.find\(Vss\)/u);
+  assert.match(selector, /l\?\.find\(Hss\)/u);
+  assert.match(selector, /\(0,XX\.jsx\)\(Fss,/u);
+  assert.match(selector, /\(0,XX\.jsx\)\(Rss,/u);
+  assert.match(selector, /\(0,XX\.jsx\)\(nss,/u);
+  assert.match(selector, /YX\.SimpleView/u);
+  assert.match(selector, /Su\(\)\.createPortal/u);
+  assert.match(selector, /\._SimpleView_1k2a9_93/u);
+  assert.doesNotMatch(
+    selector,
+    /(?:Ge\.|\(0,Z\.|className:X\.|Cp\(\)\.|Qe[,)]|tt[,)]|ye[,)])/u,
+  );
 });
 
 test("fails closed when the selector template no longer matches", () => {
