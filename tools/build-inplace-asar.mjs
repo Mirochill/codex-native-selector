@@ -69,17 +69,23 @@ if (compatibilityProfile.reactDomImport) {
   );
   source = `${compatibilityProfile.reactDomImport(reactDomFileName)}${source}`;
 }
-source = source.replace(
-  compatibilityProfile.catalogBefore,
-  compatibilityProfile.catalogAfter,
-);
+if (compatibilityProfile.catalogBefore) {
+  source = source.replace(
+    compatibilityProfile.catalogBefore,
+    compatibilityProfile.catalogAfter,
+  );
+}
 
 const { fieldsBefore, fieldsAfter, valueBefore, valueAfter } =
   compatibilityProfile;
-if (!source.includes(fieldsBefore) || !source.includes(valueBefore)) {
-  throw new Error("The original model selection mapping was not found.");
+if (fieldsBefore || valueBefore) {
+  if (!source.includes(fieldsBefore) || !source.includes(valueBefore)) {
+    throw new Error("The original model selection mapping was not found.");
+  }
+  source = source
+    .replace(fieldsBefore, fieldsAfter)
+    .replace(valueBefore, valueAfter);
 }
-source = source.replace(fieldsBefore, fieldsAfter).replace(valueBefore, valueAfter);
 
 const { componentName, nextComponentName } = compatibilityProfile;
 const componentStart = source.indexOf(`function ${componentName}(e){`);
@@ -163,7 +169,16 @@ if (entry.unpacked || entry.size !== fixedSizeChunk.length) {
 
 const newHash = crypto.createHash("sha256").update(fixedSizeChunk).digest("hex");
 entry.integrity.hash = newHash;
-entry.integrity.blocks = [newHash];
+const blockSize = entry.integrity.blockSize ?? fixedSizeChunk.length;
+entry.integrity.blocks = [];
+for (let offset = 0; offset < fixedSizeChunk.length; offset += blockSize) {
+  entry.integrity.blocks.push(
+    crypto
+      .createHash("sha256")
+      .update(fixedSizeChunk.subarray(offset, offset + blockSize))
+      .digest("hex"),
+  );
+}
 
 const headerPickle = Pickle.createEmpty();
 headerPickle.writeString(JSON.stringify(rawHeader.header));

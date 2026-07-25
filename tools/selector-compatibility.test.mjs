@@ -14,7 +14,7 @@ const template = readFileSync(
 
 function sourceFor(profile) {
   return [
-    profile.catalogBefore,
+    ...(profile.catalogBefore ? [profile.catalogBefore] : []),
     `function ${profile.componentName}(e){}`,
     `function ${profile.nextComponentName}(e){}`,
     `function ${profile.controlsName}(e){}`,
@@ -98,6 +98,74 @@ test("maps the macOS 26.707 selector to its split-bundle symbols", () => {
   assert.match(selector, /\._Burst_1pz9e_76/u);
   assert.doesNotMatch(selector, /_(?:15yqt|m3zgh|vx1zu|1ibg9)_/u);
   assert.doesNotMatch(selector, /(?:Ge|Z|X|Cp\(\)|Qe|tt|ye)[.()]/u);
+});
+
+test("maps Codex 26.721 controls and current slider styles", () => {
+  const profile = selectorCompatibilityProfiles[3];
+  const selector = adaptCompactSelector(template, profile);
+  const catalog = Function(
+    "Hos",
+    `return (${profile.catalogAfter.replace("function zos", "function")})`,
+  )((models) => models);
+  const models = [
+    { model: "gpt-5.6-luna", reasoningEffort: "medium" },
+    { model: "gpt-5.5", reasoningEffort: "low" },
+    { model: "gpt-5.6-sol", reasoningEffort: "ultra" },
+    { model: "gpt-5.6-sol", reasoningEffort: "xhigh" },
+  ];
+
+  assert.deepEqual(
+    catalog(models).map(
+      ({ model, reasoningEffort }) => `${model}:${reasoningEffort}`,
+    ),
+    ["gpt-5.6-luna:medium", "gpt-5.5:low", "gpt-5.6-sol:xhigh"],
+  );
+  assert.deepEqual(
+    catalog(models, { includeUltraInSlider: true, removeXHigh: true }).map(
+      ({ model, reasoningEffort }) => `${model}:${reasoningEffort}`,
+    ),
+    ["gpt-5.6-luna:medium", "gpt-5.5:low", "gpt-5.6-sol:ultra"],
+  );
+  assert.match(selector, /function wss\(e\)\{/u);
+  assert.match(selector, /\(0,Oss\.useState\)/u);
+  assert.match(selector, /l\?\.find\(Vss\)/u);
+  assert.match(selector, /l\?\.find\(Hss\)/u);
+  assert.match(selector, /\(0,XX\.jsx\)\(Fss,/u);
+  assert.match(selector, /\(0,XX\.jsx\)\(Rss,/u);
+  assert.match(selector, /\(0,XX\.jsx\)\(nss,/u);
+  assert.match(selector, /YX\.SimpleView/u);
+  assert.match(selector, /Su\(\)\.createPortal/u);
+  assert.match(selector, /\._SimpleView_1k2a9_93/u);
+  assert.match(selector, /codex-native-selected-version-style/u);
+  assert.match(selector, /codexNativeSelectPower/u);
+  assert.doesNotMatch(
+    selector,
+    /(?:Ge\.|\(0,Z\.|className:X\.|Cp\(\)\.|Qe[,)]|tt[,)]|ye[,)])/u,
+  );
+});
+
+test("remembers the last effort for each exact model", () => {
+  const source = template.match(/^function codexNativeSelectPower.*$/mu)?.[0];
+  assert.ok(source);
+  const values = new Map();
+  const selectPower = Function(
+    "localStorage",
+    `${source};return codexNativeSelectPower`,
+  )({
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, value),
+  });
+  const options = [
+    { model: "gpt-5.6-sol", reasoningEffort: "low" },
+    { model: "gpt-5.6-sol", reasoningEffort: "high" },
+    { model: "gpt-5.6-terra", reasoningEffort: "low" },
+    { model: "gpt-5.6-terra", reasoningEffort: "high" },
+  ];
+
+  assert.equal(selectPower(options[3], options[1], options), options[3]);
+  assert.equal(selectPower(options[2], options[3], options), options[2]);
+  assert.equal(selectPower(options[0], options[2], options), options[1]);
+  assert.equal(selectPower(options[3], options[1], options), options[2]);
 });
 
 test("fails closed when the selector template no longer matches", () => {
