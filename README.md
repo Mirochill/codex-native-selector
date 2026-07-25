@@ -105,52 +105,21 @@ Set-Location .\codex-native-selector
 npm install
 ```
 
-#### 2. Find the installed Codex directory
-
-The directory usually looks like this:
-
-```text
-C:\Program Files\WindowsApps\OpenAI.Codex_<version>_x64__2p2nqsd0c76g0\app
-```
-
-To automatically find the most recent version:
-
-```powershell
-$package = Get-ChildItem 'C:\Program Files\WindowsApps' -Directory -Filter 'OpenAI.Codex_*' |
-  Sort-Object LastWriteTime |
-  Select-Object -Last 1
-$installApp = Join-Path $package.FullName 'app'
-$installApp
-```
-
-If Windows denies access to `WindowsApps`, use the installation path shown in Codex's properties or enter the path manually.
-
-#### 3. Extract the official archive temporarily
-
-This reads the local application but does not modify the official installation:
-
-```powershell
-Remove-Item .\work\asar-extracted -Recurse -Force -ErrorAction SilentlyContinue
-npx --yes @electron/asar extract `
-  (Join-Path $installApp 'resources\app.asar') `
-  .\work\asar-extracted
-```
-
-#### 4. Build the customized copy
+#### 2. Build the customized copy
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
-  -File .\tools\build-portable.ps1 `
-  -InstallApp $installApp
+  -File .\tools\build-portable.ps1
 ```
 
+The builder detects the newest installed Microsoft Store package and extracts its archive automatically.
 The result is generated in:
 
 ```text
 outputs\Codex-Native-Selector\
 ```
 
-#### 5. Launch Codex Native Selector
+#### 3. Launch Codex Native Selector
 
 Close official Codex, including its tray icon in the Windows notification area, then launch:
 
@@ -159,6 +128,7 @@ outputs\Codex-Native-Selector\Launch Codex Native Selector.cmd
 ```
 
 The official and customized copies must not run at the same time because they use the same local Codex environment.
+The launcher checks the installed Store version on every start and rebuilds the portable copy automatically when Codex has updated.
 
 ## Updating after a Codex update
 
@@ -170,17 +140,7 @@ On macOS, quit Codex and rerun:
 ./tools/build-macos.sh
 ```
 
-On Windows, re-extract the updated archive and rebuild:
-
-```powershell
-Remove-Item .\work\asar-extracted -Recurse -Force -ErrorAction SilentlyContinue
-npx --yes @electron/asar extract `
-  (Join-Path $installApp 'resources\app.asar') `
-  .\work\asar-extracted
-powershell.exe -NoProfile -ExecutionPolicy Bypass `
-  -File .\tools\build-portable.ps1 `
-  -InstallApp $installApp
-```
+On Windows, close Codex fully and use the generated launcher. It detects the newest Store package and rebuilds automatically. You can also rerun `tools\build-portable.ps1` manually.
 
 If the script reports that a chunk or function cannot be found, the Codex version has probably changed. Update the search markers in `tools/build-inplace-asar.mjs` and rebuild.
 
