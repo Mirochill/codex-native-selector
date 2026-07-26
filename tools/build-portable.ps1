@@ -28,7 +28,13 @@ $builder = Join-Path $PSScriptRoot 'build-inplace-asar.mjs'
 $selector = Join-Path $PSScriptRoot 'selector-v2.js.txt'
 $extracted = Join-Path $workspace 'work\asar-extracted'
 $node = (Get-Command node -ErrorAction SilentlyContinue).Source
-if (-not $node) { throw 'Node.js 20 or newer is required.' }
+if (-not $node) { throw 'Node.js 22.12 or newer is required.' }
+$asarCli = Join-Path $workspace 'node_modules\@electron\asar\bin\asar.mjs'
+if (-not (Test-Path -LiteralPath $asarCli)) { throw 'Dependencies are missing; run npm install first.' }
+if (Test-Path -LiteralPath $extracted) { Remove-Item -LiteralPath $extracted -Recurse -Force }
+New-Item -ItemType Directory -Path $extracted -Force | Out-Null
+& $node $asarCli extract $sourceArchive $extracted
+if ($LASTEXITCODE -ne 0) { throw 'The official app.asar could not be extracted.' }
 Push-Location $workspace
 try { & $node $builder $sourceArchive $asarPath $selector $extracted; if ($LASTEXITCODE -ne 0) { throw 'The modified app.asar could not be created.' } } finally { Pop-Location }
 $launcher = @"
@@ -43,7 +49,7 @@ $launcherPs = @"
 `$other = @(Get-CimInstance Win32_Process -Filter "Name = 'ChatGPT.exe'" -ErrorAction SilentlyContinue | Where-Object { `$_.ExecutablePath -ne `$exe })
 if (`$other.Count -gt 0) {
     Add-Type -AssemblyName PresentationFramework
-    [System.Windows.MessageBox]::Show("Ferme complètement Codex officiel avant de lancer cette copie portable.", 'Codex Native Selector', 'OK', 'Information') | Out-Null
+    [System.Windows.MessageBox]::Show("Completely quit the official Codex app, including its notification-area icon, before launching this portable copy.", 'Codex Native Selector', 'OK', 'Information') | Out-Null
     exit 2
 }
 `$env:CODEX_SPARKLE_ENABLED = 'false'
