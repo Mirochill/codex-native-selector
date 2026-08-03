@@ -16,6 +16,7 @@ public class WidgetRefreshReceiver extends BroadcastReceiver {
         } else if (Intent.ACTION_MY_PACKAGE_REPLACED.equals(intent.getAction())) {
             CodexWidgetProvider.updateAll(context);
             AutoSyncScheduler.ensureScheduled(context);
+            AutoSyncScheduler.requestSyncIfDue(context);
         }
     }
 }
