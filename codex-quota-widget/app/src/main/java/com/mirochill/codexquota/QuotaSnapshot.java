@@ -14,6 +14,7 @@ public final class QuotaSnapshot {
             "(?i)\\b(5\\s*h|5\\s*hours?|daily|day|journalier|jour|weekly|week|hebdo|semaine)\\b");
     private static final Pattern SIGNAL = Pattern.compile(
             "(?i)(remaining|restant|restants|available|disponible|quota|limit|limite|usage|used|reset|renouvel|réinitial)");
+    private static final Pattern PERCENT = Pattern.compile("(\\d{1,3})\\s*%");
 
     public final String primaryLabel;
     public final String primaryValue;
@@ -45,7 +46,7 @@ public final class QuotaSnapshot {
     /** Returns a percentage suitable for a remaining-quota progress bar, or -1 when absent. */
     public static int percentFromValue(String value) {
         if (value == null) return -1;
-        Matcher matcher = Pattern.compile("(\\d{1,3})\\s*%").matcher(value);
+        Matcher matcher = PERCENT.matcher(value);
         if (!matcher.find()) return -1;
         try {
             return Math.max(0, Math.min(100, Integer.parseInt(matcher.group(1))));
