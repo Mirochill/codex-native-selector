@@ -66,6 +66,7 @@ public class SyncActivity extends Activity {
                 runOnUiThread(() -> status.setText("Récupération des quotas et statistiques Codex…"));
                 QuotaSnapshot snapshot = ChatGptAuthClient.sync(this);
                 QuotaStore.save(this, snapshot);
+                AutoSyncScheduler.ensureScheduled(this);
                 CodexWidgetProvider.updateAll(this);
                 runOnUiThread(() -> {
                     status.setText("Synchronisé à " + MainActivity.time(snapshot.updatedAt)
