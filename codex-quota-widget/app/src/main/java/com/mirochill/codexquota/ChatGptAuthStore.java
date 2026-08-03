@@ -186,6 +186,24 @@ public final class ChatGptAuthStore {
         }
     }
 
+    public static String planType(Context context) {
+        Tokens tokens = load(context);
+        if (tokens == null || isBlank(tokens.idToken)) return "";
+        try {
+            String[] parts = tokens.idToken.split("\\.");
+            if (parts.length < 2) return "";
+            String payload = new String(Base64.decode(parts[1], Base64.URL_SAFE | Base64.NO_WRAP),
+                    StandardCharsets.UTF_8);
+            org.json.JSONObject claims = new org.json.JSONObject(payload);
+            org.json.JSONObject auth = claims.optJSONObject("https://api.openai.com/auth");
+            String plan = auth == null ? "" : auth.optString("chatgpt_plan_type", "");
+            if (isBlank(plan)) plan = claims.optString("chatgpt_plan_type", "");
+            return plan;
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
     private static boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
     }
