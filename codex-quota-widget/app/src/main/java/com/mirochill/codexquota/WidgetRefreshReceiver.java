@@ -10,8 +10,12 @@ public class WidgetRefreshReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        if (intent != null && ACTION_REFRESH.equals(intent.getAction())) {
+        if (intent == null) return;
+        if (ACTION_REFRESH.equals(intent.getAction())) {
             AutoSyncScheduler.requestImmediateSync(context);
+        } else if (Intent.ACTION_MY_PACKAGE_REPLACED.equals(intent.getAction())) {
+            CodexWidgetProvider.updateAll(context);
+            AutoSyncScheduler.ensureScheduled(context);
         }
     }
 }
