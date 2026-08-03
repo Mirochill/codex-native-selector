@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="codex_green">#21C063</color>
+    <color name="codex_text">#F4F7F5</color>
+    <color name="codex_muted">#AAB5AF</color>
+    <color name="codex_surface">#171B19</color>
+    <color name="codex_surface_light">#202622</color>
+</resources>
