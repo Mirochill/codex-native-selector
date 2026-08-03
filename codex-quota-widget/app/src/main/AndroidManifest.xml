@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:allowBackup="false"
@@ -36,5 +37,14 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/codex_widget_info" />
         </receiver>
+
+        <receiver
+            android:name=".WidgetRefreshReceiver"
+            android:exported="false" />
+
+        <service
+            android:name=".QuotaSyncJobService"
+            android:exported="true"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
     </application>
 </manifest>
