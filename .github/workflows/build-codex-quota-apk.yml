@@ -44,5 +44,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: codex-quota-widget-release
-          path: codex-quota-widget/app/build/outputs/apk/release/app-release.apk
+          path: codex-quota-widget/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
