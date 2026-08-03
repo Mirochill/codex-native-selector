@@ -15,7 +15,8 @@ public class WidgetRefreshReceiver extends BroadcastReceiver {
             AutoSyncScheduler.requestImmediateSync(context);
         } else if (Intent.ACTION_MY_PACKAGE_REPLACED.equals(intent.getAction())) {
             CodexWidgetProvider.updateAll(context);
-            AutoSyncScheduler.ensureScheduled(context);
+            // Replace a job created by an older app version so new constraints take effect.
+            AutoSyncScheduler.reschedule(context);
             AutoSyncScheduler.requestSyncIfDue(context);
         }
     }
