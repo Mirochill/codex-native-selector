@@ -14,6 +14,7 @@ import android.graphics.RadialGradient;
 import android.graphics.RectF;
 import android.graphics.Shader;
 import android.graphics.SweepGradient;
+import android.graphics.Typeface;
 import android.os.Bundle;
 
 /** Draws only the premium visual layer; Android renders all text natively above it. */
@@ -105,23 +106,39 @@ public final class WidgetRenderer {
         paint.setStrokeWidth(single ? 5.2f : 4.7f);
         paint.setColor(Color.rgb(34, 48, 55));
         canvas.drawArc(ring, -90f, 360f, false, paint);
-        if (percent < 0) return;
+        if (percent >= 0) {
+            paint.setStrokeWidth(single ? 7.8f : 7.2f);
+            paint.setColor(withAlpha(accent, 52));
+            paint.setMaskFilter(new BlurMaskFilter(5.5f, BlurMaskFilter.Blur.NORMAL));
+            canvas.drawArc(ring, -90f, Math.min(359.8f, 360f * percent / 100f), false, paint);
+            paint.setMaskFilter(null);
+            paint.setStrokeWidth(single ? 5.2f : 4.7f);
+            SweepGradient gradient = new SweepGradient(cx, cy,
+                    new int[]{darken(accent, .72f), accent, lighten(accent, .30f)},
+                    new float[]{0f, .72f, 1f});
+            Matrix matrix = new Matrix();
+            matrix.setRotate(-90f, cx, cy);
+            gradient.setLocalMatrix(matrix);
+            paint.setShader(gradient);
+            canvas.drawArc(ring, -90f, Math.min(359.8f, 360f * percent / 100f), false, paint);
+            paint.setShader(null);
 
-        paint.setStrokeWidth(single ? 7.8f : 7.2f);
-        paint.setColor(withAlpha(accent, 52));
-        paint.setMaskFilter(new BlurMaskFilter(5.5f, BlurMaskFilter.Blur.NORMAL));
-        canvas.drawArc(ring, -90f, Math.min(359.8f, 360f * percent / 100f), false, paint);
-        paint.setMaskFilter(null);
-        paint.setStrokeWidth(single ? 5.2f : 4.7f);
-        SweepGradient gradient = new SweepGradient(cx, cy,
-                new int[]{darken(accent, .72f), accent, lighten(accent, .30f)},
-                new float[]{0f, .72f, 1f});
-        Matrix matrix = new Matrix();
-        matrix.setRotate(-90f, cx, cy);
-        gradient.setLocalMatrix(matrix);
-        paint.setShader(gradient);
-        canvas.drawArc(ring, -90f, Math.min(359.8f, 360f * percent / 100f), false, paint);
-        paint.setShader(null);
+            // Keep the value in the same coordinate system as the ring. Native TextViews
+            // use fixed dp widths and drift horizontally when launchers stretch a 4x1 widget.
+            drawCenteredPercent(canvas, cx, cy, percent, single);
+        }
+    }
+
+    private static void drawCenteredPercent(Canvas canvas, float cx, float cy,
+                                            int percent, boolean single) {
+        Paint text = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.SUBPIXEL_TEXT_FLAG);
+        text.setColor(Color.rgb(245, 249, 250));
+        text.setTextAlign(Paint.Align.CENTER);
+        text.setTextSize(single ? 15f : 13f);
+        text.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        Paint.FontMetrics metrics = text.getFontMetrics();
+        float baseline = cy - (metrics.ascent + metrics.descent) / 2f;
+        canvas.drawText(percent + "%", cx, baseline, text);
     }
 
     private static void drawTokenStrip(Canvas canvas) {
