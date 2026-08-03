@@ -86,8 +86,8 @@ public final class QuotaSnapshot {
             // The backend can swap primary/secondary ordering between plans. Always present the
             // shortest window first and the longest window second so 5 h / week never flip.
             JSONObject primary = shortestWindow(windows, originalPrimary);
-            JSONObject secondary = longestWindow(windows, originalSecondary);
-            if (secondary == primary && windows.size() > 1) secondary = windows.get(1);
+            JSONObject secondary = windows.size() > 1
+                    ? longestWindow(windows, originalSecondary) : null;
 
             String plan = firstString(root, "plan_type", "planType");
             if (plan.isEmpty() && rateLimit != null) {
@@ -103,8 +103,8 @@ public final class QuotaSnapshot {
             if (resetCredits < 0 && previous != null) resetCredits = previous.resetCredits;
 
             return new QuotaSnapshot(
-                    "5 H", remaining(primary),
-                    "7 J", remaining(secondary),
+                    labelForWindow(primary, "QUOTA"), remaining(primary),
+                    labelForWindow(secondary, ""), remaining(secondary),
                     resetAt(primary), resetAt(secondary),
                     -1L,
                     previous == null ? -1L : previous.lifetimeTokens,
@@ -115,7 +115,14 @@ public final class QuotaSnapshot {
     }
 
     private static void addWindow(List<JSONObject> windows, JSONObject window) {
-        if (window != null && !windows.contains(window)) windows.add(window);
+        if (window == null || windows.contains(window)) return;
+        long duration = windowSeconds(window);
+        if (duration > 0L) {
+            for (JSONObject existing : windows) {
+                if (windowSeconds(existing) == duration) return;
+            }
+        }
+        windows.add(window);
     }
 
     private static JSONObject shortestWindow(List<JSONObject> windows, JSONObject fallback) {
@@ -174,6 +181,10 @@ public final class QuotaSnapshot {
 
     public boolean hasAnyValue() {
         return !"—".equals(primaryValue) || !"—".equals(secondaryValue);
+    }
+
+    public boolean hasSecondaryWindow() {
+        return !"—".equals(secondaryValue);
     }
 
     public long nextResetAt() {
@@ -248,6 +259,21 @@ public final class QuotaSnapshot {
             seconds = minutes * 60L;
         }
         return seconds;
+    }
+
+    private static String labelForWindow(JSONObject window, String fallback) {
+        long seconds = windowSeconds(window);
+        if (seconds <= 0L) return fallback;
+        if (seconds < 36L * 60L * 60L) {
+            long hours = Math.max(1L, Math.round(seconds / 3600d));
+            return hours + " H";
+        }
+        if (seconds < 28L * 24L * 60L * 60L) {
+            long days = Math.max(1L, Math.round(seconds / 86_400d));
+            return days + " J";
+        }
+        long months = Math.max(1L, Math.round(seconds / (30d * 86_400d)));
+        return months == 1L ? "1 MOIS" : months + " MOIS";
     }
 
     private static long resetAt(JSONObject window) {
