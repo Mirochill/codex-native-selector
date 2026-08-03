@@ -24,9 +24,13 @@ public class CodexWidgetProvider extends AppWidgetProvider {
     private static void updateWidget(Context context, AppWidgetManager manager, int id) {
         QuotaSnapshot snapshot = QuotaStore.get(context);
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_codex);
-        views.setTextViewText(R.id.widget_primary, block(snapshot.primaryLabel, snapshot.primaryValue));
-        views.setTextViewText(R.id.widget_secondary, block(snapshot.secondaryLabel, snapshot.secondaryValue));
-        views.setTextViewText(R.id.widget_updated, snapshot.updatedAt == 0L ? "Pas synchronisé" : "à " + MainActivity.time(snapshot.updatedAt));
+        views.setTextViewText(R.id.widget_primary_label, snapshot.primaryLabel);
+        views.setTextViewText(R.id.widget_primary, snapshot.primaryValue);
+        views.setTextViewText(R.id.widget_secondary_label, snapshot.secondaryLabel);
+        views.setTextViewText(R.id.widget_secondary, snapshot.secondaryValue);
+        views.setTextViewText(R.id.widget_updated, snapshot.updatedAt == 0L ? "À synchroniser" : MainActivity.time(snapshot.updatedAt));
+        setProgress(views, R.id.widget_primary_progress, snapshot.primaryValue);
+        setProgress(views, R.id.widget_secondary_progress, snapshot.secondaryValue);
 
         // Touching the widget opens the lightweight sync screen, so one tap refreshes it.
         Intent open = new Intent(context, SyncActivity.class);
@@ -36,7 +40,13 @@ public class CodexWidgetProvider extends AppWidgetProvider {
         manager.updateAppWidget(id, views);
     }
 
-    private static String block(String label, String value) {
-        return label + "\n" + value;
+    private static void setProgress(RemoteViews views, int id, String value) {
+        int percent = QuotaSnapshot.percentFromValue(value);
+        if (percent < 0) {
+            views.setViewVisibility(id, android.view.View.GONE);
+        } else {
+            views.setViewVisibility(id, android.view.View.VISIBLE);
+            views.setProgressBar(id, 100, percent, false);
+        }
     }
 }

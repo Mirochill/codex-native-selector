@@ -62,12 +62,12 @@ public class SyncActivity extends Activity {
 
             @Override
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
-                status.setText("Chargement de Codex… Connecte-toi si nécessaire.");
+                status.setText("Connexion ChatGPT / Codex…");
             }
 
             @Override
             public void onPageFinished(WebView view, String url) {
-                status.setText("Lecture du tableau d’usage…");
+                status.setText("Récupération des limites Codex…");
                 polls = 0;
                 HANDLER.removeCallbacks(inspectRunnable);
                 HANDLER.postDelayed(inspectRunnable, 1400L);
