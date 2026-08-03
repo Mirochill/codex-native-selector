@@ -8,9 +8,13 @@ import android.os.Bundle;
 import android.text.InputType;
 import android.view.Gravity;
 import android.view.ViewGroup;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
 
 import java.text.SimpleDateFormat;
@@ -19,16 +23,19 @@ import java.util.Locale;
 
 public class MainActivity extends Activity {
     private TextView status;
+    private Spinner interval;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         status = findViewById(R.id.main_status);
+        interval = findViewById(R.id.main_interval);
 
         findViewById(R.id.main_sync).setOnClickListener(v ->
                 startActivity(new Intent(this, SyncActivity.class)));
         findViewById(R.id.main_manual).setOnClickListener(v -> showManualDialog());
+        setupIntervalSelector();
         AutoSyncScheduler.ensureScheduled(this);
         render();
     }
@@ -57,8 +64,28 @@ public class MainActivity extends Activity {
                 + "\nTokens total : " + QuotaSnapshot.compactTokens(s.lifetimeTokens)
                 + "\nAbonnement : " + s.planType + "   •   Resets : " + resetBank
                 + "\n" + updated
-                + "\nActualisation automatique : environ toutes les 30 min");
+                + "\nActualisation : " + SyncPreferences.currentLabel(this));
         status.setTextColor(Color.WHITE);
+    }
+
+    private void setupIntervalSelector() {
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item, SyncPreferences.LABELS);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        interval.setAdapter(adapter);
+        interval.setSelection(SyncPreferences.selectedIndex(this), false);
+        interval.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if (position == SyncPreferences.selectedIndex(MainActivity.this)) return;
+                SyncPreferences.select(MainActivity.this, position);
+                AutoSyncScheduler.reschedule(MainActivity.this);
+                render();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
     }
 
     private void showManualDialog() {
