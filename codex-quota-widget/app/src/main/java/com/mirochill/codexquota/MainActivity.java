@@ -29,6 +29,7 @@ public class MainActivity extends Activity {
         findViewById(R.id.main_sync).setOnClickListener(v ->
                 startActivity(new Intent(this, SyncActivity.class)));
         findViewById(R.id.main_manual).setOnClickListener(v -> showManualDialog());
+        AutoSyncScheduler.ensureScheduled(this);
         render();
     }
 
@@ -45,12 +46,18 @@ public class MainActivity extends Activity {
                 ? "ChatGPT / Codex connecté"
                 : "ChatGPT / Codex non connecté";
         String resetBank = s.resetCredits < 0 ? "—" : Integer.toString(s.resetCredits);
+        String quotas = CodexWidgetProvider.displayWindow(s.primaryLabel) + " : " + s.primaryValue;
+        if (s.hasSecondaryWindow()) {
+            quotas += "   •   " + CodexWidgetProvider.displayWindow(s.secondaryLabel)
+                    + " : " + s.secondaryValue;
+        }
         status.setText(connection
-                + "\n\n5 h : " + s.primaryValue + "   •   Semaine : " + s.secondaryValue
+                + "\n\n" + quotas
                 + "\nTokens aujourd’hui : " + QuotaSnapshot.compactTokens(s.dailyTokens)
                 + "\nTokens total : " + QuotaSnapshot.compactTokens(s.lifetimeTokens)
                 + "\nAbonnement : " + s.planType + "   •   Resets : " + resetBank
-                + "\n" + updated);
+                + "\n" + updated
+                + "\nActualisation automatique : environ toutes les 30 min");
         status.setTextColor(Color.WHITE);
     }
 
