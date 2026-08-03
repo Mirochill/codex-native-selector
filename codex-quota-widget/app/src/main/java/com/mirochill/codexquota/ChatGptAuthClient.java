@@ -20,6 +20,7 @@ public final class ChatGptAuthClient {
     private static final String AUTH_BASE = "https://auth.openai.com";
     private static final String API_ACCOUNTS = AUTH_BASE + "/api/accounts";
     private static final String CHATGPT_USAGE = "https://chatgpt.com/backend-api/wham/usage";
+    private static final String CHATGPT_PROFILE = "https://chatgpt.com/backend-api/wham/profiles/me";
     private static final String CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann";
     private static final int CONNECT_TIMEOUT_MS = 15_000;
     private static final int READ_TIMEOUT_MS = 25_000;
@@ -108,7 +109,7 @@ public final class ChatGptAuthClient {
         ChatGptAuthStore.Tokens tokens = ChatGptAuthStore.load(context);
         if (tokens == null) throw new AuthException("Connexion ChatGPT requise.");
         try {
-            return fetchQuota(tokens);
+            return fetchSnapshot(context, tokens);
         } catch (HttpFailure failure) {
             if (failure.status != 401 || tokens.refreshToken == null || tokens.refreshToken.isEmpty()) {
                 throw failure;
@@ -116,14 +117,27 @@ public final class ChatGptAuthClient {
             ChatGptAuthStore.Tokens refreshed = refresh(tokens);
             ChatGptAuthStore.save(context, refreshed);
             ChatGptAuthStore.Tokens persisted = ChatGptAuthStore.load(context);
-            return fetchQuota(persisted == null ? refreshed : persisted);
+            return fetchSnapshot(context, persisted == null ? refreshed : persisted);
         }
     }
 
-    private static QuotaSnapshot fetchQuota(ChatGptAuthStore.Tokens tokens) throws Exception {
+    private static QuotaSnapshot fetchSnapshot(Context context, ChatGptAuthStore.Tokens tokens)
+            throws Exception {
+        QuotaSnapshot previous = QuotaStore.get(context);
         JSONObject response = requestJson("GET", CHATGPT_USAGE, null, null, tokens);
-        QuotaSnapshot snapshot = QuotaSnapshot.fromUsageJson(response.toString());
+        QuotaSnapshot snapshot = QuotaSnapshot.fromUsageJson(response.toString(),
+                ChatGptAuthStore.planType(context), previous);
         if (!snapshot.hasAnyValue()) throw new AuthException("Quota Codex introuvable dans la réponse.");
+        try {
+            JSONObject profile = requestJson("GET", CHATGPT_PROFILE, null, null, tokens);
+            snapshot = snapshot.withProfileJson(profile.toString());
+        } catch (HttpFailure failure) {
+            // A stale access token must still trigger the normal refresh path.
+            if (failure.status == 401) throw failure;
+            // Profile statistics are supplementary; valid quota data stays usable.
+        } catch (Exception ignored) {
+            // Keep the previous token counters if the profile service is temporarily unavailable.
+        }
         return snapshot;
     }
 
