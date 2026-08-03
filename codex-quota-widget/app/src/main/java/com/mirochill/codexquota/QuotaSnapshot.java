@@ -57,13 +57,22 @@ public final class QuotaSnapshot {
             JSONObject secondary = rateLimit == null ? null : rateLimit.optJSONObject("secondary_window");
 
             JSONArray additional = root.optJSONArray("additional_rate_limits");
-            if (secondary == null && additional != null && additional.length() > 0) {
-                JSONObject first = additional.optJSONObject(0);
-                JSONObject additionalLimit = first == null ? null : first.optJSONObject("rate_limit");
-                secondary = additionalLimit == null ? null : additionalLimit.optJSONObject("secondary_window");
-                if (secondary == null && additionalLimit != null) {
-                    secondary = additionalLimit.optJSONObject("primary_window");
+            if (secondary == null && additional != null) {
+                JSONObject fallback = null;
+                for (int i = 0; i < additional.length(); i++) {
+                    JSONObject entry = additional.optJSONObject(i);
+                    JSONObject additionalLimit = entry == null ? null : entry.optJSONObject("rate_limit");
+                    if (additionalLimit == null) continue;
+                    JSONObject candidate = additionalLimit.optJSONObject("secondary_window");
+                    if (candidate == null) candidate = additionalLimit.optJSONObject("primary_window");
+                    if (candidate == null) continue;
+                    if (fallback == null) fallback = candidate;
+                    if (candidate.optLong("limit_window_seconds", 0L) >= 2L * 24L * 60L * 60L) {
+                        secondary = candidate;
+                        break;
+                    }
                 }
+                if (secondary == null) secondary = fallback;
             }
 
             String primaryValue = remaining(primary);

@@ -18,7 +18,6 @@ public class SyncActivity extends Activity {
     private Button openAuth;
     private Button refresh;
     private ExecutorService executor;
-    private volatile ChatGptAuthClient.DeviceCode pendingDeviceCode;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,7 +47,6 @@ public class SyncActivity extends Activity {
             try {
                 if (!ChatGptAuthStore.hasTokens(this)) {
                     ChatGptAuthClient.DeviceCode deviceCode = ChatGptAuthClient.requestDeviceCode();
-                    pendingDeviceCode = deviceCode;
                     runOnUiThread(() -> showDeviceCode(deviceCode));
                     // Open the system browser, never a WebView, for the actual ChatGPT login.
                     runOnUiThread(this::openVerificationPage);
