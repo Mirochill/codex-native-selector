@@ -37,13 +37,17 @@ public class MainActivity extends Activity {
         findViewById(R.id.main_manual).setOnClickListener(v -> showManualDialog());
         setupIntervalSelector();
         AutoSyncScheduler.ensureScheduled(this);
+        AutoSyncScheduler.requestSyncIfDue(this);
         render();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        if (status != null) render();
+        if (status != null) {
+            AutoSyncScheduler.requestSyncIfDue(this);
+            render();
+        }
     }
 
     private void render() {
@@ -80,6 +84,7 @@ public class MainActivity extends Activity {
                 if (position == SyncPreferences.selectedIndex(MainActivity.this)) return;
                 SyncPreferences.select(MainActivity.this, position);
                 AutoSyncScheduler.reschedule(MainActivity.this);
+                AutoSyncScheduler.requestSyncIfDue(MainActivity.this);
                 render();
             }
 
