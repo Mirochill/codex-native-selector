@@ -40,8 +40,21 @@ jobs:
       - name: Restore stable debug signing key
         uses: actions/cache@v4
         with:
-          path: ~/.android/debug.keystore
+          path: codex-quota-widget/.signing/debug.keystore
           key: codex-quota-debug-signing-v1
+
+      - name: Prepare stable debug signing key
+        run: |
+          mkdir -p .signing
+          if [ ! -f .signing/debug.keystore ]; then
+            keytool -genkeypair -noprompt \
+              -keystore .signing/debug.keystore \
+              -storepass codex-widget-local \
+              -keypass codex-widget-local \
+              -alias codexwidget \
+              -dname "CN=Codex Quota Widget, O=Mirochill, C=FR" \
+              -keyalg RSA -keysize 2048 -validity 10000
+          fi
 
       - name: Build installable debug APK
         run: gradle --no-daemon assembleDebug
