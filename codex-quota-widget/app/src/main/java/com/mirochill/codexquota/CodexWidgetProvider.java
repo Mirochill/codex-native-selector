@@ -75,18 +75,13 @@ public class CodexWidgetProvider extends AppWidgetProvider {
         views.setTextViewText(R.id.widget_next_reset, resetValue(snapshot.nextResetAt()));
         views.setTextViewText(R.id.widget_updated, snapshot.updatedAt == 0L
                 ? "SYNC —" : "SYNC  " + MainActivity.time(snapshot.updatedAt));
+        views.setViewVisibility(R.id.widget_sync_dot,
+                snapshot.updatedAt == 0L ? View.GONE : View.VISIBLE);
 
-        PendingIntent pending;
-        if (ChatGptAuthStore.hasTokens(context)) {
-            Intent refresh = new Intent(context, WidgetRefreshReceiver.class)
-                    .setAction(WidgetRefreshReceiver.ACTION_REFRESH);
-            pending = PendingIntent.getBroadcast(context, 1002, refresh,
-                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        } else {
-            Intent open = new Intent(context, SyncActivity.class);
-            pending = PendingIntent.getActivity(context, 1001, open,
-                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        }
+        Intent open = new Intent(context, MainActivity.class)
+                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        PendingIntent pending = PendingIntent.getActivity(context, 1001, open,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         views.setOnClickPendingIntent(R.id.widget_root, pending);
         manager.updateAppWidget(id, views);
     }
