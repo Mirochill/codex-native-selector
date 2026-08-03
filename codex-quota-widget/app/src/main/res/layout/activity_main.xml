@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/codex_surface">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="22dp">
+        <ImageView
+            android:layout_width="54dp"
+            android:layout_height="54dp"
+            android:layout_gravity="center_horizontal"
+            android:contentDescription="Codex"
+            android:src="@drawable/ic_codex" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="center"
+            android:text="Codex Quota"
+            android:textColor="@color/codex_text"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:text="Widget 4×1 • synchronisation locale"
+            android:textColor="@color/codex_muted"
+            android:textSize="13sp" />
+        <TextView
+            android:id="@+id/main_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:textColor="@color/codex_text"
+            android:textSize="15sp" />
+        <Button
+            android:id="@+id/main_sync"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="Synchroniser depuis Codex" />
+        <Button
+            android:id="@+id/main_dashboard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Ouvrir le tableau de bord" />
+        <Button
+            android:id="@+id/main_manual"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Renseigner les quotas manuellement" />
+        <TextView
+            android:id="@+id/main_privacy"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Aucun serveur intermédiaire. La session WebView et le dernier résultat restent sur le téléphone. La synchronisation n’est pas automatique afin de préserver la batterie."
+            android:textColor="@color/codex_muted"
+            android:textSize="12sp" />
+    </LinearLayout>
+</ScrollView>
