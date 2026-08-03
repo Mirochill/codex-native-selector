@@ -63,7 +63,7 @@ public class SyncActivity extends Activity {
                     ChatGptAuthStore.save(this, tokens);
                     ChatGptAuthStore.clearPendingDeviceCode(this);
                 }
-                runOnUiThread(() -> status.setText("Récupération des limites Codex…"));
+                runOnUiThread(() -> status.setText("Récupération des quotas et statistiques Codex…"));
                 QuotaSnapshot snapshot = ChatGptAuthClient.sync(this);
                 QuotaStore.save(this, snapshot);
                 CodexWidgetProvider.updateAll(this);
