@@ -20,26 +20,24 @@ public class QuotaSyncJobService extends JobService {
             return false;
         }
 
-        QuotaSnapshot current = QuotaStore.get(this);
-        boolean periodic = params.getJobId() == AutoSyncScheduler.PERIODIC_JOB_ID;
-        long recentEnough = Math.min(20L * 60L * 1000L,
-                Math.max(2L * 60L * 1000L, SyncPreferences.intervalMillis(this) / 2L));
-        if (periodic && current.updatedAt > 0L
-                && System.currentTimeMillis() - current.updatedAt < recentEnough) {
-            CodexWidgetProvider.updateAll(this);
-            return false;
-        }
-
         FutureTask<Void> task = new FutureTask<>(() -> {
+            boolean retry = false;
             try {
+                // Every scheduled execution performs a fresh authenticated server request.
+                // Redrawing cached values is handled separately by CodexWidgetProvider.
                 QuotaSnapshot snapshot = ChatGptAuthClient.sync(this);
                 QuotaStore.save(this, snapshot);
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                retry = true;
+            } catch (java.io.IOException transientNetworkFailure) {
+                retry = true;
             } catch (Exception ignored) {
-                // Keep the last valid snapshot; the next scheduled run can try again.
+                // Auth/server errors keep the last snapshot and wait for the next interval.
             } finally {
                 CodexWidgetProvider.updateAll(this);
                 if (running.remove(params.getJobId()) != null) {
-                    jobFinished(params, false);
+                    jobFinished(params, retry);
                 }
             }
         }, null);
@@ -52,7 +50,7 @@ public class QuotaSyncJobService extends JobService {
     public boolean onStopJob(JobParameters params) {
         Future<?> task = running.remove(params.getJobId());
         if (task != null) task.cancel(true);
-        return false;
+        return true;
     }
 
     @Override
