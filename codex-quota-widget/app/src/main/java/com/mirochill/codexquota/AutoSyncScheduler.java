@@ -10,48 +10,78 @@ import android.os.Build;
 public final class AutoSyncScheduler {
     static final int PERIODIC_JOB_ID = 0xC0D301;
     static final int IMMEDIATE_JOB_ID = 0xC0D302;
-    static final long PERIOD_MS = 30L * 60L * 1000L;
-    private static final long FLEX_MS = 10L * 60L * 1000L;
-
     private AutoSyncScheduler() {}
 
     public static void ensureScheduled(Context context) {
-        Context app = context.getApplicationContext();
-        if (!ChatGptAuthStore.hasTokens(app) || !CodexWidgetProvider.hasWidgets(app)) return;
-        JobScheduler scheduler = app.getSystemService(JobScheduler.class);
-        if (scheduler == null || scheduler.getPendingJob(PERIODIC_JOB_ID) != null) return;
+        try {
+            Context app = context.getApplicationContext();
+            JobScheduler scheduler = app.getSystemService(JobScheduler.class);
+            if (scheduler == null) return;
 
-        JobInfo job = base(app, PERIODIC_JOB_ID)
-                .setPersisted(true)
-                .setRequiresBatteryNotLow(true)
-                .setPeriodic(PERIOD_MS, FLEX_MS)
-                .build();
-        scheduler.schedule(job);
+            long period = SyncPreferences.intervalMillis(app);
+            if (period == SyncPreferences.DISABLED) {
+                scheduler.cancel(PERIODIC_JOB_ID);
+                return;
+            }
+            if (!ChatGptAuthStore.hasTokens(app) || !CodexWidgetProvider.hasWidgets(app)) return;
+
+            JobInfo pending = scheduler.getPendingJob(PERIODIC_JOB_ID);
+            if (pending != null && pending.getIntervalMillis() == period) return;
+            if (pending != null) scheduler.cancel(PERIODIC_JOB_ID);
+
+            long flex = Math.max(5L * 60L * 1000L,
+                    Math.min(10L * 60L * 1000L, period / 3L));
+            JobInfo job = base(app, PERIODIC_JOB_ID)
+                    .setPersisted(true)
+                    .setRequiresBatteryNotLow(true)
+                    .setPeriodic(period, flex)
+                    .build();
+            scheduler.schedule(job);
+        } catch (RuntimeException ignored) {
+            // Scheduling must never be able to crash the app or the widget host.
+        }
+    }
+
+    public static void reschedule(Context context) {
+        try {
+            JobScheduler scheduler = context.getSystemService(JobScheduler.class);
+            if (scheduler != null) scheduler.cancel(PERIODIC_JOB_ID);
+        } catch (RuntimeException ignored) {
+            // ensureScheduled below performs the same best-effort recovery.
+        }
+        ensureScheduled(context);
     }
 
     public static void requestImmediateSync(Context context) {
-        Context app = context.getApplicationContext();
-        if (!ChatGptAuthStore.hasTokens(app) || !CodexWidgetProvider.hasWidgets(app)) return;
-        JobScheduler scheduler = app.getSystemService(JobScheduler.class);
-        if (scheduler == null) return;
+        try {
+            Context app = context.getApplicationContext();
+            if (!ChatGptAuthStore.hasTokens(app) || !CodexWidgetProvider.hasWidgets(app)) return;
+            JobScheduler scheduler = app.getSystemService(JobScheduler.class);
+            if (scheduler == null) return;
 
-        JobInfo.Builder builder = base(app, IMMEDIATE_JOB_ID);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            builder.setExpedited(true);
-        } else {
-            builder.setMinimumLatency(0L);
-        }
-        JobInfo job = builder.build();
-        if (scheduler.schedule(job) == JobScheduler.RESULT_SUCCESS) {
-            CodexWidgetProvider.showSyncing(app);
+            JobInfo.Builder builder = base(app, IMMEDIATE_JOB_ID);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                builder.setExpedited(true);
+            } else {
+                builder.setMinimumLatency(0L);
+            }
+            if (scheduler.schedule(builder.build()) == JobScheduler.RESULT_SUCCESS) {
+                CodexWidgetProvider.showSyncing(app);
+            }
+        } catch (RuntimeException ignored) {
+            CodexWidgetProvider.updateAll(context);
         }
     }
 
     public static void cancel(Context context) {
-        JobScheduler scheduler = context.getSystemService(JobScheduler.class);
-        if (scheduler == null) return;
-        scheduler.cancel(PERIODIC_JOB_ID);
-        scheduler.cancel(IMMEDIATE_JOB_ID);
+        try {
+            JobScheduler scheduler = context.getSystemService(JobScheduler.class);
+            if (scheduler == null) return;
+            scheduler.cancel(PERIODIC_JOB_ID);
+            scheduler.cancel(IMMEDIATE_JOB_ID);
+        } catch (RuntimeException ignored) {
+            // Nothing remains alive in-process, so there is nothing else to stop.
+        }
     }
 
     private static JobInfo.Builder base(Context context, int id) {
