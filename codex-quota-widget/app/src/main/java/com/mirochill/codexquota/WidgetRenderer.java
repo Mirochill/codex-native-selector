@@ -52,7 +52,7 @@ public final class WidgetRenderer {
             drawQuotaCard(canvas, new RectF(9f, 8f, 220f, 63f), snapshot.primaryValue, true, true);
         }
         drawTokenStrip(canvas);
-        drawAccountCard(canvas, snapshot.updatedAt != 0L);
+        drawAccountCard(canvas);
         return bitmap;
     }
 
@@ -138,7 +138,7 @@ public final class WidgetRenderer {
         canvas.drawRect(113.8f, 70f, 114.3f, 77.5f, paint);
     }
 
-    private static void drawAccountCard(Canvas canvas, boolean synced) {
+    private static void drawAccountCard(Canvas canvas) {
         RectF card = new RectF(226f, 8f, 351f, 80.5f);
         Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         paint.setColor(Color.argb(174, 10, 16, 23));
@@ -148,10 +148,7 @@ public final class WidgetRenderer {
         paint.setColor(Color.rgb(38, 49, 63));
         canvas.drawRoundRect(card, 15f, 15f, paint);
         chip(canvas, new RectF(234f, 14f, 299f, 32f), GREEN, Color.argb(86, 33, 108, 76));
-        chip(canvas, new RectF(304f, 14f, 343f, 32f), VIOLET, Color.argb(86, 57, 65, 128));
-        paint.setStyle(Paint.Style.FILL);
-        paint.setColor(synced ? GREEN : Color.rgb(104, 116, 123));
-        canvas.drawCircle(237f, 71.3f, 1.7f, paint);
+        chip(canvas, new RectF(303f, 14f, 343f, 32f), VIOLET, Color.argb(86, 57, 65, 128));
     }
 
     private static void chip(Canvas canvas, RectF bounds, int accent, int fill) {
