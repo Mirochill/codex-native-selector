@@ -52,7 +52,8 @@
                             android:includeFontPadding="false"
                             android:text="—"
                             android:textColor="#F5F9FA"
-                            android:textSize="13sp" />
+                            android:textSize="13sp"
+                            android:visibility="invisible" />
                         <TextView
                             android:id="@+id/widget_primary_label"
                             android:layout_width="match_parent"
@@ -81,7 +82,8 @@
                             android:includeFontPadding="false"
                             android:text="—"
                             android:textColor="#F5F9FA"
-                            android:textSize="13sp" />
+                            android:textSize="13sp"
+                            android:visibility="invisible" />
                         <TextView
                             android:id="@+id/widget_secondary_label"
                             android:layout_width="match_parent"
@@ -111,7 +113,8 @@
                         android:includeFontPadding="false"
                         android:text="—"
                         android:textColor="#F5F9FA"
-                        android:textSize="15sp" />
+                        android:textSize="15sp"
+                        android:visibility="invisible" />
                     <TextView
                         android:id="@+id/widget_single_label"
                         android:layout_width="match_parent"
