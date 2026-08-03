@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - agent/codex-quota-apk
-  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -37,12 +36,12 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Build installable debug APK
-        run: gradle --no-daemon assembleDebug
+      - name: Build release APK
+        run: gradle --no-daemon assembleRelease
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: codex-quota-widget-debug
-          path: codex-quota-widget/app/build/outputs/apk/debug/app-debug.apk
+          name: codex-quota-widget-release
+          path: codex-quota-widget/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error

@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.graphics.Color;
-import android.net.Uri;
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.Gravity;
@@ -42,7 +41,11 @@ public class MainActivity extends Activity {
     private void render() {
         QuotaSnapshot s = QuotaStore.get(this);
         String updated = s.updatedAt == 0L ? "Jamais synchronisé." : "Dernière synchronisation : " + time(s.updatedAt);
-        status.setText("5 h : " + s.primaryValue + "\nSemaine : " + s.secondaryValue + "\n" + updated);
+        String connection = ChatGptAuthStore.hasTokens(this)
+                ? "ChatGPT / Codex connecté"
+                : "ChatGPT / Codex non connecté";
+        status.setText(connection + "\n5 h : " + s.primaryValue + "\nSemaine : " + s.secondaryValue
+                + "\n" + updated);
         status.setTextColor(Color.WHITE);
     }
 
