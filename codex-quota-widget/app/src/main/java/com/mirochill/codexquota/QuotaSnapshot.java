@@ -1,5 +1,8 @@
 package com.mirochill.codexquota;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -37,6 +40,41 @@ public final class QuotaSnapshot {
 
     public static QuotaSnapshot manual(String primary, String secondary) {
         return new QuotaSnapshot("5h", primary, "Semaine", secondary, System.currentTimeMillis());
+    }
+
+    /**
+     * Converts the authenticated Codex usage response into the two values shown by the widget.
+     * The backend reports used_percent, so the widget deliberately exposes the remaining percent.
+     */
+    public static QuotaSnapshot fromUsageJson(String raw) {
+        if (raw == null || raw.trim().isEmpty()) return empty();
+        try {
+            JSONObject root = new JSONObject(raw);
+            JSONObject rateLimit = root.optJSONObject("rate_limit");
+            if (rateLimit == null) rateLimit = root.optJSONObject("rateLimits");
+
+            JSONObject primary = rateLimit == null ? null : rateLimit.optJSONObject("primary_window");
+            JSONObject secondary = rateLimit == null ? null : rateLimit.optJSONObject("secondary_window");
+
+            JSONArray additional = root.optJSONArray("additional_rate_limits");
+            if (secondary == null && additional != null && additional.length() > 0) {
+                JSONObject first = additional.optJSONObject(0);
+                JSONObject additionalLimit = first == null ? null : first.optJSONObject("rate_limit");
+                secondary = additionalLimit == null ? null : additionalLimit.optJSONObject("secondary_window");
+                if (secondary == null && additionalLimit != null) {
+                    secondary = additionalLimit.optJSONObject("primary_window");
+                }
+            }
+
+            String primaryValue = remaining(primary);
+            String secondaryValue = remaining(secondary);
+            String primaryLabel = labelFor(primary, "5 h");
+            String secondaryLabel = labelFor(secondary, "Semaine");
+            return new QuotaSnapshot(primaryLabel, primaryValue, secondaryLabel, secondaryValue,
+                    System.currentTimeMillis());
+        } catch (Exception ignored) {
+            return empty();
+        }
     }
 
     public boolean hasAnyValue() {
@@ -131,5 +169,19 @@ public final class QuotaSnapshot {
 
     private static String safe(String value, String fallback) {
         return value == null || value.trim().isEmpty() ? fallback : value.trim();
+    }
+
+    private static String remaining(JSONObject window) {
+        if (window == null || !window.has("used_percent")) return "—";
+        int used = Math.max(0, Math.min(100, window.optInt("used_percent", 100)));
+        return (100 - used) + "%";
+    }
+
+    private static String labelFor(JSONObject window, String fallback) {
+        if (window == null) return fallback;
+        long seconds = window.optLong("limit_window_seconds", 0L);
+        if (seconds > 0L && seconds <= 8L * 60L * 60L) return "5 h";
+        if (seconds >= 2L * 24L * 60L * 60L) return "Semaine";
+        return fallback;
     }
 }
