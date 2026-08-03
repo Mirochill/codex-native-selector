@@ -14,12 +14,14 @@ public class CodexWidgetProvider extends AppWidgetProvider {
     public void onUpdate(Context context, AppWidgetManager manager, int[] appWidgetIds) {
         for (int id : appWidgetIds) updateWidget(context, manager, id);
         AutoSyncScheduler.ensureScheduled(context);
+        AutoSyncScheduler.requestSyncIfDue(context);
     }
 
     @Override
     public void onEnabled(Context context) {
         super.onEnabled(context);
         AutoSyncScheduler.ensureScheduled(context);
+        AutoSyncScheduler.requestSyncIfDue(context);
     }
 
     @Override
