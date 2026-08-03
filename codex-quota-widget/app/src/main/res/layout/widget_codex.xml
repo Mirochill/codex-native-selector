@@ -10,4 +10,261 @@
         android:layout_height="match_parent"
         android:contentDescription="Quotas Codex"
         android:scaleType="fitXY" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        android:paddingStart="9dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="9dp"
+        android:paddingBottom="7dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="211"
+            android:orientation="vertical">
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="55">
+
+                <LinearLayout
+                    android:id="@+id/widget_dual_quotas"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal">
+
+                    <FrameLayout
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginEnd="5dp"
+                        android:layout_weight="1">
+                        <TextView
+                            android:id="@+id/widget_primary"
+                            android:layout_width="58dp"
+                            android:layout_height="match_parent"
+                            android:fontFamily="sans-serif-medium"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:text="—"
+                            android:textColor="#F5F9FA"
+                            android:textSize="13sp" />
+                        <TextView
+                            android:id="@+id/widget_primary_label"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_marginStart="57dp"
+                            android:fontFamily="sans-serif-medium"
+                            android:gravity="center_vertical"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:text="5 HEURES"
+                            android:textColor="#F5F9FA"
+                            android:textSize="9sp" />
+                    </FrameLayout>
+
+                    <FrameLayout
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="5dp"
+                        android:layout_weight="1">
+                        <TextView
+                            android:id="@+id/widget_secondary"
+                            android:layout_width="58dp"
+                            android:layout_height="match_parent"
+                            android:fontFamily="sans-serif-medium"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:text="—"
+                            android:textColor="#F5F9FA"
+                            android:textSize="13sp" />
+                        <TextView
+                            android:id="@+id/widget_secondary_label"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_marginStart="57dp"
+                            android:fontFamily="sans-serif-medium"
+                            android:gravity="center_vertical"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:text="7 JOURS"
+                            android:textColor="#F5F9FA"
+                            android:textSize="9sp" />
+                    </FrameLayout>
+                </LinearLayout>
+
+                <FrameLayout
+                    android:id="@+id/widget_single_quota"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:visibility="gone">
+                    <TextView
+                        android:id="@+id/widget_single_value"
+                        android:layout_width="96dp"
+                        android:layout_height="match_parent"
+                        android:fontFamily="sans-serif-medium"
+                        android:gravity="center"
+                        android:includeFontPadding="false"
+                        android:text="—"
+                        android:textColor="#F5F9FA"
+                        android:textSize="15sp" />
+                    <TextView
+                        android:id="@+id/widget_single_label"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="96dp"
+                        android:fontFamily="sans-serif-medium"
+                        android:gravity="center_vertical"
+                        android:includeFontPadding="false"
+                        android:maxLines="1"
+                        android:text="7 JOURS"
+                        android:textColor="#F5F9FA"
+                        android:textSize="12sp" />
+                </FrameLayout>
+            </FrameLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_marginTop="4dp"
+                android:layout_weight="14"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-medium"
+                        android:includeFontPadding="false"
+                        android:text="TOK/DAY"
+                        android:textColor="#C4D0D6"
+                        android:textSize="7sp" />
+                    <TextView
+                        android:id="@+id/widget_tokens_day"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:fontFamily="sans-serif-medium"
+                        android:includeFontPadding="false"
+                        android:text="—"
+                        android:textColor="#FFFFFF"
+                        android:textSize="10sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-medium"
+                        android:includeFontPadding="false"
+                        android:text="TOK/TOTAL"
+                        android:textColor="#C4D0D6"
+                        android:textSize="7sp" />
+                    <TextView
+                        android:id="@+id/widget_tokens_total"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:fontFamily="sans-serif-medium"
+                        android:includeFontPadding="false"
+                        android:text="—"
+                        android:textColor="#FFFFFF"
+                        android:textSize="10sp" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+        <ImageView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="6"
+            android:contentDescription="" />
+
+        <FrameLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="125">
+
+            <TextView
+                android:id="@+id/widget_plan"
+                android:layout_width="65dp"
+                android:layout_height="18dp"
+                android:layout_marginStart="8dp"
+                android:layout_marginTop="6dp"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:text="CODEX"
+                android:textColor="#A6F6CE"
+                android:textSize="7sp" />
+
+            <TextView
+                android:id="@+id/widget_reset_bank"
+                android:layout_width="39dp"
+                android:layout_height="18dp"
+                android:layout_marginStart="78dp"
+                android:layout_marginTop="6dp"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:text="BANK —"
+                android:textColor="#C2C8FF"
+                android:textSize="7sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="13dp"
+                android:layout_marginStart="9dp"
+                android:layout_marginTop="29dp"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center_vertical"
+                android:includeFontPadding="false"
+                android:text="NEXT RESET"
+                android:textColor="#B7C3C9"
+                android:textSize="7.5sp" />
+
+            <TextView
+                android:id="@+id/widget_next_reset"
+                android:layout_width="match_parent"
+                android:layout_height="24dp"
+                android:layout_marginStart="9dp"
+                android:layout_marginTop="40dp"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center_vertical"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:text="—"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp" />
+
+            <TextView
+                android:id="@+id/widget_updated"
+                android:layout_width="wrap_content"
+                android:layout_height="14dp"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="58dp"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center_vertical"
+                android:includeFontPadding="false"
+                android:text="SYNC —"
+                android:textColor="#BBC6CC"
+                android:textSize="7.5sp" />
+        </FrameLayout>
+    </LinearLayout>
 </FrameLayout>
