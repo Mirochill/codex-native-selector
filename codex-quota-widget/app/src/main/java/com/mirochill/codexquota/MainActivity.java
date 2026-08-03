@@ -44,7 +44,12 @@ public class MainActivity extends Activity {
         String connection = ChatGptAuthStore.hasTokens(this)
                 ? "ChatGPT / Codex connecté"
                 : "ChatGPT / Codex non connecté";
-        status.setText(connection + "\n5 h : " + s.primaryValue + "\nSemaine : " + s.secondaryValue
+        String resetBank = s.resetCredits < 0 ? "—" : Integer.toString(s.resetCredits);
+        status.setText(connection
+                + "\n\n5 h : " + s.primaryValue + "   •   Semaine : " + s.secondaryValue
+                + "\nTokens aujourd’hui : " + QuotaSnapshot.compactTokens(s.dailyTokens)
+                + "\nTokens total : " + QuotaSnapshot.compactTokens(s.lifetimeTokens)
+                + "\nAbonnement : " + s.planType + "   •   Resets : " + resetBank
                 + "\n" + updated);
         status.setTextColor(Color.WHITE);
     }
