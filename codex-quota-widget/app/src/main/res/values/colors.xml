@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="codex_green">#21C063</color>
-    <color name="codex_text">#F4F7F5</color>
-    <color name="codex_muted">#AAB5AF</color>
-    <color name="codex_surface">#171B19</color>
-    <color name="codex_surface_light">#202622</color>
+    <color name="codex_green">#39D98A</color>
+    <color name="codex_green_dark">#174B35</color>
+    <color name="codex_accent">#B2F8D2</color>
+    <color name="codex_text">#F5FAF7</color>
+    <color name="codex_muted">#9AAEA3</color>
+    <color name="codex_background">#0C100E</color>
+    <color name="codex_surface">#151B18</color>
+    <color name="codex_surface_light">#202B25</color>
+    <color name="codex_surface_elevated">#1D2922</color>
+    <color name="codex_outline">#304238</color>
 </resources>

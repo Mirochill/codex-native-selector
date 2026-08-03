@@ -29,8 +29,6 @@ public class MainActivity extends Activity {
 
         findViewById(R.id.main_sync).setOnClickListener(v ->
                 startActivity(new Intent(this, SyncActivity.class)));
-        findViewById(R.id.main_dashboard).setOnClickListener(v ->
-                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(SyncActivity.USAGE_URL))));
         findViewById(R.id.main_manual).setOnClickListener(v -> showManualDialog());
         render();
     }
@@ -44,7 +42,7 @@ public class MainActivity extends Activity {
     private void render() {
         QuotaSnapshot s = QuotaStore.get(this);
         String updated = s.updatedAt == 0L ? "Jamais synchronisé." : "Dernière synchronisation : " + time(s.updatedAt);
-        status.setText("Quota 5 h : " + s.primaryValue + "\nQuota semaine : " + s.secondaryValue + "\n" + updated);
+        status.setText("5 h : " + s.primaryValue + "\nSemaine : " + s.secondaryValue + "\n" + updated);
         status.setTextColor(Color.WHITE);
     }
 

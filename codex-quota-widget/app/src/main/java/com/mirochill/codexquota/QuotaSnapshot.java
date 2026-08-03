@@ -42,6 +42,18 @@ public final class QuotaSnapshot {
         return !"—".equals(primaryValue) || !"—".equals(secondaryValue);
     }
 
+    /** Returns a percentage suitable for a remaining-quota progress bar, or -1 when absent. */
+    public static int percentFromValue(String value) {
+        if (value == null) return -1;
+        Matcher matcher = Pattern.compile("(\\d{1,3})\\s*%").matcher(value);
+        if (!matcher.find()) return -1;
+        try {
+            return Math.max(0, Math.min(100, Integer.parseInt(matcher.group(1))));
+        } catch (NumberFormatException ignored) {
+            return -1;
+        }
+    }
+
     /**
      * Extracts only visible text from the dashboard. This intentionally avoids
      * private API endpoints and works as a best-effort parser when the page UI changes.
