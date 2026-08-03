@@ -21,6 +21,10 @@ public final class ChatGptAuthStore {
     private static final String ACCESS = "access";
     private static final String REFRESH = "refresh";
     private static final String ID = "id";
+    private static final String DEVICE_AUTH_ID = "pending_device_auth_id";
+    private static final String DEVICE_CODE = "pending_device_code";
+    private static final String DEVICE_INTERVAL = "pending_device_interval";
+    private static final String DEVICE_CREATED = "pending_device_created";
 
     private ChatGptAuthStore() {}
 
@@ -35,6 +39,18 @@ public final class ChatGptAuthStore {
             this.refreshToken = refreshToken;
             this.idToken = idToken;
             this.accountId = accountId;
+        }
+    }
+
+    public static final class PendingDeviceCode {
+        public final String deviceAuthId;
+        public final String userCode;
+        public final int intervalSeconds;
+
+        private PendingDeviceCode(String deviceAuthId, String userCode, int intervalSeconds) {
+            this.deviceAuthId = deviceAuthId;
+            this.userCode = userCode;
+            this.intervalSeconds = intervalSeconds;
         }
     }
 
@@ -75,6 +91,44 @@ public final class ChatGptAuthStore {
         } catch (Exception ignored) {
             // Clearing the preferences is sufficient if the keystore is unavailable.
         }
+    }
+
+    /** Saves only the short-lived device-flow state so a killed activity can resume polling. */
+    public static void savePendingDeviceCode(Context context, String deviceAuthId,
+                                             String userCode, int intervalSeconds) throws Exception {
+        SharedPreferences.Editor editor = prefs(context).edit();
+        putEncrypted(editor, DEVICE_AUTH_ID, deviceAuthId);
+        putEncrypted(editor, DEVICE_CODE, userCode);
+        editor.putInt(DEVICE_INTERVAL, Math.max(2, intervalSeconds));
+        editor.putLong(DEVICE_CREATED, System.currentTimeMillis());
+        editor.apply();
+    }
+
+    public static PendingDeviceCode getPendingDeviceCode(Context context) {
+        try {
+            SharedPreferences prefs = prefs(context);
+            long created = prefs.getLong(DEVICE_CREATED, 0L);
+            if (created == 0L || System.currentTimeMillis() - created > 15L * 60L * 1000L) {
+                clearPendingDeviceCode(context);
+                return null;
+            }
+            String deviceAuthId = getEncrypted(prefs, DEVICE_AUTH_ID);
+            String userCode = getEncrypted(prefs, DEVICE_CODE);
+            if (isBlank(deviceAuthId) || isBlank(userCode)) return null;
+            return new PendingDeviceCode(deviceAuthId, userCode,
+                    Math.max(2, prefs.getInt(DEVICE_INTERVAL, 5)));
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    public static void clearPendingDeviceCode(Context context) {
+        prefs(context).edit()
+                .remove(DEVICE_AUTH_ID)
+                .remove(DEVICE_CODE)
+                .remove(DEVICE_INTERVAL)
+                .remove(DEVICE_CREATED)
+                .apply();
     }
 
     private static SharedPreferences prefs(Context context) {

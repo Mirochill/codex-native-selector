@@ -46,12 +46,22 @@ public class SyncActivity extends Activity {
         executor.submit(() -> {
             try {
                 if (!ChatGptAuthStore.hasTokens(this)) {
-                    ChatGptAuthClient.DeviceCode deviceCode = ChatGptAuthClient.requestDeviceCode();
-                    runOnUiThread(() -> showDeviceCode(deviceCode));
-                    // Open the system browser, never a WebView, for the actual ChatGPT login.
-                    runOnUiThread(this::openVerificationPage);
+                    ChatGptAuthStore.PendingDeviceCode pending = ChatGptAuthStore.getPendingDeviceCode(this);
+                    boolean freshCode = pending == null;
+                    ChatGptAuthClient.DeviceCode deviceCode = freshCode
+                            ? ChatGptAuthClient.requestDeviceCode()
+                            : ChatGptAuthClient.DeviceCode.resume(pending);
+                    if (freshCode) {
+                        ChatGptAuthStore.savePendingDeviceCode(this, deviceCode.deviceAuthId,
+                                deviceCode.userCode, deviceCode.intervalSeconds);
+                    }
+                    runOnUiThread(() -> showDeviceCode(deviceCode, freshCode));
+                    // Open the system browser only for a newly-created flow. A resumed flow may
+                    // already have been approved while the activity was closed.
+                    if (freshCode) runOnUiThread(this::openVerificationPage);
                     ChatGptAuthStore.Tokens tokens = ChatGptAuthClient.completeDeviceCode(deviceCode);
                     ChatGptAuthStore.save(this, tokens);
+                    ChatGptAuthStore.clearPendingDeviceCode(this);
                 }
                 runOnUiThread(() -> status.setText("Récupération des limites Codex…"));
                 QuotaSnapshot snapshot = ChatGptAuthClient.sync(this);
@@ -75,11 +85,13 @@ public class SyncActivity extends Activity {
         });
     }
 
-    private void showDeviceCode(ChatGptAuthClient.DeviceCode deviceCode) {
+    private void showDeviceCode(ChatGptAuthClient.DeviceCode deviceCode, boolean freshCode) {
         code.setText(deviceCode.userCode);
         code.setVisibility(View.VISIBLE);
         openAuth.setVisibility(View.VISIBLE);
-        status.setText("Ouvre la page ChatGPT, saisis ce code, puis reviens ici.");
+        status.setText(freshCode
+                ? "Ouvre la page ChatGPT, saisis ce code, puis reviens ici."
+                : "Reprise de la connexion ChatGPT… le code est encore surveillé.");
     }
 
     private void openVerificationPage() {

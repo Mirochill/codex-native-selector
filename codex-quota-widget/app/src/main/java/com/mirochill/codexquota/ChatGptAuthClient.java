@@ -6,6 +6,7 @@ import android.net.Uri;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -35,6 +36,10 @@ public final class ChatGptAuthClient {
             this.deviceAuthId = deviceAuthId;
             this.intervalSeconds = intervalSeconds;
         }
+
+        static DeviceCode resume(ChatGptAuthStore.PendingDeviceCode pending) {
+            return new DeviceCode(pending.userCode, pending.deviceAuthId, pending.intervalSeconds);
+        }
     }
 
     public static final class AuthException extends Exception {
@@ -58,7 +63,7 @@ public final class ChatGptAuthClient {
                 body.toString(), "application/json", null);
         String userCode = response.optString("user_code", response.optString("usercode", ""));
         String deviceAuthId = response.optString("device_auth_id", "");
-        int interval = response.optInt("interval", 5);
+        int interval = parseInterval(response.opt("interval"));
         if (interval < 2) interval = 5;
         if (userCode.isEmpty() || deviceAuthId.isEmpty()) {
             throw new AuthException("Le serveur d’auth n’a pas renvoyé de code appareil.");
@@ -89,6 +94,9 @@ public final class ChatGptAuthClient {
                 }
             } catch (HttpFailure pending) {
                 if (pending.status != 403 && pending.status != 404) throw pending;
+            } catch (IOException transientNetworkError) {
+                // Android can abort a polling socket when the browser opens, the app is resumed,
+                // or the mobile network changes. The device code remains valid, so retry it.
             }
             Thread.sleep(deviceCode.intervalSeconds * 1000L);
         }
@@ -154,6 +162,9 @@ public final class ChatGptAuthClient {
         connection.setConnectTimeout(CONNECT_TIMEOUT_MS);
         connection.setReadTimeout(READ_TIMEOUT_MS);
         connection.setUseCaches(false);
+        connection.setInstanceFollowRedirects(true);
+        connection.setDoInput(true);
+        connection.setRequestProperty("Connection", "close");
         connection.setRequestProperty("Accept", "application/json");
         connection.setRequestProperty("User-Agent", "codex-quota-widget/1.2");
         if (tokens != null) {
@@ -172,19 +183,34 @@ public final class ChatGptAuthClient {
             }
         }
 
-        int status = connection.getResponseCode();
-        InputStream stream = status >= 400 ? connection.getErrorStream() : connection.getInputStream();
-        String responseBody = read(stream);
-        connection.disconnect();
-        if (status < 200 || status >= 300) {
-            // Never surface an authenticated response body in the UI.
-            throw new HttpFailure(status, "Réponse serveur " + status);
-        }
         try {
-            return new JSONObject(responseBody);
-        } catch (Exception parseError) {
-            throw new AuthException("Réponse JSON inattendue du serveur Codex.");
+            int status = connection.getResponseCode();
+            InputStream stream = status >= 400 ? connection.getErrorStream() : connection.getInputStream();
+            String responseBody = read(stream);
+            if (status < 200 || status >= 300) {
+                // Never surface an authenticated response body in the UI.
+                throw new HttpFailure(status, "Réponse serveur " + status);
+            }
+            try {
+                return new JSONObject(responseBody);
+            } catch (Exception parseError) {
+                throw new AuthException("Réponse JSON inattendue du serveur Codex.");
+            }
+        } finally {
+            connection.disconnect();
         }
+    }
+
+    private static int parseInterval(Object raw) {
+        if (raw instanceof Number) return ((Number) raw).intValue();
+        if (raw != null) {
+            try {
+                return Integer.parseInt(raw.toString().trim());
+            } catch (NumberFormatException ignored) {
+                // Use the safe default below.
+            }
+        }
+        return 5;
     }
 
     private static String read(InputStream stream) throws Exception {

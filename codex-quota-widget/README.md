@@ -6,6 +6,7 @@ Widget Android natif 4×1 pour afficher le dernier quota Codex synchronisé.
 
 - L’app utilise le flux officiel de connexion ChatGPT/Codex par code appareil : le navigateur système s’ouvre sur `auth.openai.com`, puis l’app récupère la session OAuth.
 - Les jetons OAuth sont chiffrés dans Android Keystore. Aucun mot de passe, clé API ou jeton n’est affiché ni sauvegardé en clair.
+- Le code appareil est conservé chiffré pendant 15 minutes et le polling reprend après une coupure réseau ou la fermeture de l’écran.
 - Après connexion, l’app lit les fenêtres Codex 5 h/semaine et convertit `used_percent` en pourcentage restant.
 - Le widget reste passif : aucune synchronisation en arrière-plan. Un appui sur le widget ouvre l’écran de synchronisation.
 - La saisie manuelle reste disponible si le service est momentanément indisponible.
