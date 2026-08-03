@@ -5,11 +5,14 @@ import android.app.job.JobScheduler;
 import android.content.ComponentName;
 import android.content.Context;
 import android.os.Build;
+import android.os.PersistableBundle;
 
 /** Lets Android batch quota refreshes instead of keeping a process or timer alive. */
 public final class AutoSyncScheduler {
     static final int PERIODIC_JOB_ID = 0xC0D301;
     static final int IMMEDIATE_JOB_ID = 0xC0D302;
+    private static final String EXTRA_SCHEDULE_REVISION = "schedule_revision";
+    private static final int SCHEDULE_REVISION = 2;
     private AutoSyncScheduler() {}
 
     public static void ensureScheduled(Context context) {
@@ -26,12 +29,16 @@ public final class AutoSyncScheduler {
             if (!ChatGptAuthStore.hasTokens(app) || !CodexWidgetProvider.hasWidgets(app)) return;
 
             JobInfo pending = scheduler.getPendingJob(PERIODIC_JOB_ID);
-            if (pending != null && pending.getIntervalMillis() == period) return;
+            if (pending != null
+                    && pending.getIntervalMillis() == period
+                    && pending.getExtras().getInt(EXTRA_SCHEDULE_REVISION, 0)
+                    == SCHEDULE_REVISION) return;
             if (pending != null) scheduler.cancel(PERIODIC_JOB_ID);
 
             long flex = Math.max(5L * 60L * 1000L,
                     Math.min(10L * 60L * 1000L, period / 3L));
             JobInfo job = base(app, PERIODIC_JOB_ID)
+                    .setExtras(scheduleExtras())
                     .setPersisted(true)
                     .setPeriodic(period, flex)
                     .build();
@@ -113,5 +120,11 @@ public final class AutoSyncScheduler {
     private static JobInfo.Builder base(Context context, int id) {
         return new JobInfo.Builder(id, new ComponentName(context, QuotaSyncJobService.class))
                 .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY);
+    }
+
+    private static PersistableBundle scheduleExtras() {
+        PersistableBundle extras = new PersistableBundle();
+        extras.putInt(EXTRA_SCHEDULE_REVISION, SCHEDULE_REVISION);
+        return extras;
     }
 }
