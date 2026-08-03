@@ -8,7 +8,7 @@ Widget Android natif 4×1 pour afficher le dernier quota Codex synchronisé.
 - Les jetons OAuth sont chiffrés dans Android Keystore. Aucun mot de passe, clé API ou jeton n’est affiché ni sauvegardé en clair.
 - Le code appareil est conservé chiffré pendant 15 minutes et le polling reprend après une coupure réseau ou la fermeture de l’écran.
 - Après connexion, l’app lit les fenêtres Codex 5 h/semaine et convertit `used_percent` en pourcentage restant.
-- Android synchronise automatiquement le widget environ toutes les 30 minutes, uniquement avec Internet et lorsque la batterie n’est pas faible. Aucun service permanent ne tourne.
+- La fréquence automatique se choisit dans l’app : 15 min, 30 min par défaut, 1 h, 2 h, 4 h, 8 h, 12 h, 24 h ou désactivée. Elle utilise uniquement Internet lorsque la batterie n’est pas faible et aucun service permanent ne tourne.
 - Un appui sur le widget demande une synchronisation silencieuse immédiate. L’écran de connexion ne s’ouvre que si l’authentification manque.
 - La saisie manuelle reste disponible si le service est momentanément indisponible.
 
