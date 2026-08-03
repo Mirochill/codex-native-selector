@@ -11,7 +11,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /** Performs one short sync, then releases the process immediately. */
 public class QuotaSyncJobService extends JobService {
-    private static final long RECENT_ENOUGH_MS = 20L * 60L * 1000L;
     private final ExecutorService executor = Executors.newCachedThreadPool();
     private final ConcurrentHashMap<Integer, Future<?>> running = new ConcurrentHashMap<>();
 
@@ -23,8 +22,10 @@ public class QuotaSyncJobService extends JobService {
 
         QuotaSnapshot current = QuotaStore.get(this);
         boolean periodic = params.getJobId() == AutoSyncScheduler.PERIODIC_JOB_ID;
+        long recentEnough = Math.min(20L * 60L * 1000L,
+                Math.max(2L * 60L * 1000L, SyncPreferences.intervalMillis(this) / 2L));
         if (periodic && current.updatedAt > 0L
-                && System.currentTimeMillis() - current.updatedAt < RECENT_ENOUGH_MS) {
+                && System.currentTimeMillis() - current.updatedAt < recentEnough) {
             CodexWidgetProvider.updateAll(this);
             return false;
         }
