@@ -105,7 +105,7 @@ public final class ChatGptAuthClient {
     }
 
     /** Returns the latest quota, refreshing the OAuth access token once after a 401. */
-    public static QuotaSnapshot sync(Context context) throws Exception {
+    public static synchronized QuotaSnapshot sync(Context context) throws Exception {
         ChatGptAuthStore.Tokens tokens = ChatGptAuthStore.load(context);
         if (tokens == null) throw new AuthException("Connexion ChatGPT requise.");
         try {
@@ -180,7 +180,7 @@ public final class ChatGptAuthClient {
         connection.setDoInput(true);
         connection.setRequestProperty("Connection", "close");
         connection.setRequestProperty("Accept", "application/json");
-        connection.setRequestProperty("User-Agent", "codex-quota-widget/1.2");
+        connection.setRequestProperty("User-Agent", "codex-quota-widget/1.7");
         if (tokens != null) {
             connection.setRequestProperty("Authorization", "Bearer " + tokens.accessToken);
             if (tokens.accountId != null && !tokens.accountId.isEmpty()) {
