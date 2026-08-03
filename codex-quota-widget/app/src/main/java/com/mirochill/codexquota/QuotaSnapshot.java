@@ -4,7 +4,9 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 import java.util.regex.Matcher;
@@ -61,30 +63,31 @@ public final class QuotaSnapshot {
         try {
             JSONObject root = new JSONObject(raw);
             JSONObject rateLimit = firstObject(root, "rate_limit", "rateLimits");
-            JSONObject primary = rateLimit == null ? null
+            JSONObject originalPrimary = rateLimit == null ? null
                     : firstObject(rateLimit, "primary_window", "primary");
-            JSONObject secondary = rateLimit == null ? null
+            JSONObject originalSecondary = rateLimit == null ? null
                     : firstObject(rateLimit, "secondary_window", "secondary");
 
+            List<JSONObject> windows = new ArrayList<>();
+            addWindow(windows, originalPrimary);
+            addWindow(windows, originalSecondary);
             JSONArray additional = firstArray(root, "additional_rate_limits", "additionalRateLimits");
-            if (secondary == null && additional != null) {
-                JSONObject fallback = null;
+            if (additional != null) {
                 for (int i = 0; i < additional.length(); i++) {
                     JSONObject entry = additional.optJSONObject(i);
                     JSONObject additionalLimit = entry == null ? null
                             : firstObject(entry, "rate_limit", "rateLimit");
                     if (additionalLimit == null) continue;
-                    JSONObject candidate = firstObject(additionalLimit,
-                            "secondary_window", "secondary", "primary_window", "primary");
-                    if (candidate == null) continue;
-                    if (fallback == null) fallback = candidate;
-                    if (windowSeconds(candidate) >= 2L * 24L * 60L * 60L) {
-                        secondary = candidate;
-                        break;
-                    }
+                    addWindow(windows, firstObject(additionalLimit, "primary_window", "primary"));
+                    addWindow(windows, firstObject(additionalLimit, "secondary_window", "secondary"));
                 }
-                if (secondary == null) secondary = fallback;
             }
+
+            // The backend can swap primary/secondary ordering between plans. Always present the
+            // shortest window first and the longest window second so 5 h / week never flip.
+            JSONObject primary = shortestWindow(windows, originalPrimary);
+            JSONObject secondary = longestWindow(windows, originalSecondary);
+            if (secondary == primary && windows.size() > 1) secondary = windows.get(1);
 
             String plan = firstString(root, "plan_type", "planType");
             if (plan.isEmpty() && rateLimit != null) {
@@ -100,8 +103,8 @@ public final class QuotaSnapshot {
             if (resetCredits < 0 && previous != null) resetCredits = previous.resetCredits;
 
             return new QuotaSnapshot(
-                    labelFor(primary, "5 H"), remaining(primary),
-                    labelFor(secondary, "7 J"), remaining(secondary),
+                    "5 H", remaining(primary),
+                    "7 J", remaining(secondary),
                     resetAt(primary), resetAt(secondary),
                     -1L,
                     previous == null ? -1L : previous.lifetimeTokens,
@@ -109,6 +112,36 @@ public final class QuotaSnapshot {
         } catch (Exception ignored) {
             return previous == null ? empty() : previous;
         }
+    }
+
+    private static void addWindow(List<JSONObject> windows, JSONObject window) {
+        if (window != null && !windows.contains(window)) windows.add(window);
+    }
+
+    private static JSONObject shortestWindow(List<JSONObject> windows, JSONObject fallback) {
+        JSONObject best = null;
+        long bestSeconds = Long.MAX_VALUE;
+        for (JSONObject window : windows) {
+            long seconds = windowSeconds(window);
+            if (seconds > 0L && seconds < bestSeconds) {
+                best = window;
+                bestSeconds = seconds;
+            }
+        }
+        return best == null ? fallback : best;
+    }
+
+    private static JSONObject longestWindow(List<JSONObject> windows, JSONObject fallback) {
+        JSONObject best = null;
+        long bestSeconds = 0L;
+        for (JSONObject window : windows) {
+            long seconds = windowSeconds(window);
+            if (seconds > bestSeconds) {
+                best = window;
+                bestSeconds = seconds;
+            }
+        }
+        return best == null ? fallback : best;
     }
 
     /** Merges the profile/token-activity response without discarding valid quota data. */
@@ -205,13 +238,6 @@ public final class QuotaSnapshot {
         int used = firstInt(window, -1, "used_percent", "usedPercent");
         if (used < 0) return "—";
         return (100 - Math.max(0, Math.min(100, used))) + "%";
-    }
-
-    private static String labelFor(JSONObject window, String fallback) {
-        long seconds = windowSeconds(window);
-        if (seconds > 0L && seconds <= 8L * 60L * 60L) return "5 H";
-        if (seconds >= 2L * 24L * 60L * 60L) return "7 J";
-        return fallback;
     }
 
     private static long windowSeconds(JSONObject window) {
