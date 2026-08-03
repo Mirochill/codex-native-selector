@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -46,3 +46,13 @@ jobs:
           name: codex-quota-widget-debug
           path: codex-quota-widget/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+
+      - name: Store APK handoff on build branch
+        if: github.event_name == 'push'
+        run: |
+          base64 -w 0 app/build/outputs/apk/debug/app-debug.apk > app-debug.apk.b64
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app-debug.apk.b64
+          git commit -m "Store compiled Codex widget APK [skip ci]"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
