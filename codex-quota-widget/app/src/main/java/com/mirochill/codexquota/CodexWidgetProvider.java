@@ -13,6 +13,19 @@ public class CodexWidgetProvider extends AppWidgetProvider {
     @Override
     public void onUpdate(Context context, AppWidgetManager manager, int[] appWidgetIds) {
         for (int id : appWidgetIds) updateWidget(context, manager, id);
+        AutoSyncScheduler.ensureScheduled(context);
+    }
+
+    @Override
+    public void onEnabled(Context context) {
+        super.onEnabled(context);
+        AutoSyncScheduler.ensureScheduled(context);
+    }
+
+    @Override
+    public void onDisabled(Context context) {
+        AutoSyncScheduler.cancel(context);
+        super.onDisabled(context);
     }
 
     public static void updateAll(Context context) {
@@ -20,6 +33,22 @@ public class CodexWidgetProvider extends AppWidgetProvider {
         ComponentName component = new ComponentName(context, CodexWidgetProvider.class);
         int[] ids = manager.getAppWidgetIds(component);
         for (int id : ids) updateWidget(context, manager, id);
+    }
+
+    public static boolean hasWidgets(Context context) {
+        AppWidgetManager manager = AppWidgetManager.getInstance(context);
+        ComponentName component = new ComponentName(context, CodexWidgetProvider.class);
+        return manager.getAppWidgetIds(component).length > 0;
+    }
+
+    public static void showSyncing(Context context) {
+        AppWidgetManager manager = AppWidgetManager.getInstance(context);
+        ComponentName component = new ComponentName(context, CodexWidgetProvider.class);
+        int[] ids = manager.getAppWidgetIds(component);
+        if (ids.length == 0) return;
+        RemoteViews progress = new RemoteViews(context.getPackageName(), R.layout.widget_codex);
+        progress.setTextViewText(R.id.widget_updated, "SYNC…");
+        manager.partiallyUpdateAppWidget(ids, progress);
     }
 
     private static void updateWidget(Context context, AppWidgetManager manager, int id) {
@@ -47,14 +76,22 @@ public class CodexWidgetProvider extends AppWidgetProvider {
         views.setTextViewText(R.id.widget_updated, snapshot.updatedAt == 0L
                 ? "SYNC —" : "SYNC  " + MainActivity.time(snapshot.updatedAt));
 
-        Intent open = new Intent(context, SyncActivity.class);
-        PendingIntent pending = PendingIntent.getActivity(
-                context, 1001, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent pending;
+        if (ChatGptAuthStore.hasTokens(context)) {
+            Intent refresh = new Intent(context, WidgetRefreshReceiver.class)
+                    .setAction(WidgetRefreshReceiver.ACTION_REFRESH);
+            pending = PendingIntent.getBroadcast(context, 1002, refresh,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        } else {
+            Intent open = new Intent(context, SyncActivity.class);
+            pending = PendingIntent.getActivity(context, 1001, open,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        }
         views.setOnClickPendingIntent(R.id.widget_root, pending);
         manager.updateAppWidget(id, views);
     }
 
-    private static String displayWindow(String label) {
+    static String displayWindow(String label) {
         if (label == null || label.trim().isEmpty()) return "QUOTA";
         String clean = label.trim().toUpperCase();
         if (clean.endsWith(" H")) return clean.substring(0, clean.length() - 2) + " HEURES";
