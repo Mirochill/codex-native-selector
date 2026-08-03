@@ -12,7 +12,6 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.Locale;
 
 /** Small client for the same ChatGPT auth/rate-limit flow used by Codex. */
 public final class ChatGptAuthClient {
@@ -108,7 +107,8 @@ public final class ChatGptAuthClient {
             }
             ChatGptAuthStore.Tokens refreshed = refresh(tokens);
             ChatGptAuthStore.save(context, refreshed);
-            return fetchQuota(refreshed);
+            ChatGptAuthStore.Tokens persisted = ChatGptAuthStore.load(context);
+            return fetchQuota(persisted == null ? refreshed : persisted);
         }
     }
 
@@ -176,8 +176,10 @@ public final class ChatGptAuthClient {
         InputStream stream = status >= 400 ? connection.getErrorStream() : connection.getInputStream();
         String responseBody = read(stream);
         connection.disconnect();
-        if (status < 200 || status >= 300) throw new HttpFailure(status,
-                "Réponse serveur " + status + (responseBody.isEmpty() ? "" : " : " + responseBody));
+        if (status < 200 || status >= 300) {
+            // Never surface an authenticated response body in the UI.
+            throw new HttpFailure(status, "Réponse serveur " + status);
+        }
         try {
             return new JSONObject(responseBody);
         } catch (Exception parseError) {
