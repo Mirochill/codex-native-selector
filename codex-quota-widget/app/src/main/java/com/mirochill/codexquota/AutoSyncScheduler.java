@@ -33,7 +33,6 @@ public final class AutoSyncScheduler {
                     Math.min(10L * 60L * 1000L, period / 3L));
             JobInfo job = base(app, PERIODIC_JOB_ID)
                     .setPersisted(true)
-                    .setRequiresBatteryNotLow(true)
                     .setPeriodic(period, flex)
                     .build();
             scheduler.schedule(job);
@@ -52,12 +51,39 @@ public final class AutoSyncScheduler {
         ensureScheduled(context);
     }
 
+    /**
+     * Converts a launcher/widget refresh into a real authenticated sync whenever the
+     * last successful server fetch is older than the interval selected by the user.
+     * This is a low-cost fallback for manufacturers that aggressively defer periodic jobs.
+     */
+    public static void requestSyncIfDue(Context context) {
+        try {
+            Context app = context.getApplicationContext();
+            long interval = SyncPreferences.intervalMillis(app);
+            if (interval == SyncPreferences.DISABLED
+                    || !ChatGptAuthStore.hasTokens(app)
+                    || !CodexWidgetProvider.hasWidgets(app)) return;
+
+            long updatedAt = QuotaStore.get(app).updatedAt;
+            long age = updatedAt <= 0L ? Long.MAX_VALUE
+                    : Math.max(0L, System.currentTimeMillis() - updatedAt);
+            long tolerance = Math.min(60_000L, Math.max(5_000L, interval / 20L));
+            if (age >= interval - tolerance) requestImmediateSync(app);
+        } catch (RuntimeException ignored) {
+            // The normal periodic job remains available if the launcher fallback fails.
+        }
+    }
+
     public static void requestImmediateSync(Context context) {
         try {
             Context app = context.getApplicationContext();
             if (!ChatGptAuthStore.hasTokens(app) || !CodexWidgetProvider.hasWidgets(app)) return;
             JobScheduler scheduler = app.getSystemService(JobScheduler.class);
             if (scheduler == null) return;
+
+            // A widget update, app resume and package event can arrive together. Keep one
+            // network request in flight instead of replacing the same immediate job repeatedly.
+            if (scheduler.getPendingJob(IMMEDIATE_JOB_ID) != null) return;
 
             JobInfo.Builder builder = base(app, IMMEDIATE_JOB_ID);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
