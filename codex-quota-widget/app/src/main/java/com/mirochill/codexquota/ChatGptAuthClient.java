@@ -180,7 +180,7 @@ public final class ChatGptAuthClient {
         connection.setDoInput(true);
         connection.setRequestProperty("Connection", "close");
         connection.setRequestProperty("Accept", "application/json");
-        connection.setRequestProperty("User-Agent", "codex-quota-widget/1.11");
+        connection.setRequestProperty("User-Agent", "codex-quota-widget/1.12");
         if (tokens != null) {
             connection.setRequestProperty("Authorization", "Bearer " + tokens.accessToken);
             if (tokens.accountId != null && !tokens.accountId.isEmpty()) {
