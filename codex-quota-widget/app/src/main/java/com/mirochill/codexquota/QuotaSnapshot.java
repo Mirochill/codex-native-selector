@@ -5,6 +5,7 @@ import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -23,6 +24,7 @@ public final class QuotaSnapshot {
     public final long primaryResetsAt;
     public final long secondaryResetsAt;
     public final long dailyTokens;
+    public final long yesterdayTokens;
     public final long lifetimeTokens;
     public final String planType;
     public final int resetCredits;
@@ -31,7 +33,7 @@ public final class QuotaSnapshot {
     public QuotaSnapshot(String primaryLabel, String primaryValue,
                          String secondaryLabel, String secondaryValue,
                          long primaryResetsAt, long secondaryResetsAt,
-                         long dailyTokens, long lifetimeTokens,
+                         long dailyTokens, long yesterdayTokens, long lifetimeTokens,
                          String planType, int resetCredits, long updatedAt) {
         this.primaryLabel = safe(primaryLabel, "5 H");
         this.primaryValue = safe(primaryValue, "—");
@@ -40,6 +42,7 @@ public final class QuotaSnapshot {
         this.primaryResetsAt = primaryResetsAt;
         this.secondaryResetsAt = secondaryResetsAt;
         this.dailyTokens = dailyTokens;
+        this.yesterdayTokens = yesterdayTokens;
         this.lifetimeTokens = lifetimeTokens;
         this.planType = safe(planType, "CODEX");
         this.resetCredits = resetCredits;
@@ -48,12 +51,12 @@ public final class QuotaSnapshot {
 
     public static QuotaSnapshot empty() {
         return new QuotaSnapshot("5 H", "—", "7 J", "—", 0L, 0L,
-                -1L, -1L, "CODEX", -1, 0L);
+                -1L, -1L, -1L, "CODEX", -1, 0L);
     }
 
     public static QuotaSnapshot manual(String primary, String secondary) {
         return new QuotaSnapshot("5 H", primary, "7 J", secondary, 0L, 0L,
-                -1L, -1L, "CODEX", -1, System.currentTimeMillis());
+                -1L, -1L, -1L, "CODEX", -1, System.currentTimeMillis());
     }
 
     /** Parses the rate-limit payload returned by ChatGPT's Codex usage service. */
@@ -107,6 +110,7 @@ public final class QuotaSnapshot {
                     labelForWindow(secondary, ""), remaining(secondary),
                     resetAt(primary), resetAt(secondary),
                     -1L,
+                    previous == null ? -1L : previous.yesterdayTokens,
                     previous == null ? -1L : previous.lifetimeTokens,
                     displayPlan(plan), resetCredits, System.currentTimeMillis());
         } catch (Exception ignored) {
@@ -169,10 +173,17 @@ public final class QuotaSnapshot {
                     "today_tokens", "todayTokens", "daily_tokens", "dailyTokens");
             if (todayTokens < 0L) todayTokens = firstLong(stats, -1L,
                     "today_tokens", "todayTokens", "daily_tokens", "dailyTokens");
-            if (todayTokens < 0L) todayTokens = tokensForToday(daily);
+            if (todayTokens < 0L) todayTokens = tokensForDay(daily, 0);
+
+            long yesterday = firstLong(root, -1L,
+                    "yesterday_tokens", "yesterdayTokens");
+            if (yesterday < 0L) yesterday = firstLong(stats, -1L,
+                    "yesterday_tokens", "yesterdayTokens");
+            if (yesterday < 0L) yesterday = tokensForDay(daily, -1);
+            if (yesterday < 0L) yesterday = yesterdayTokens;
 
             return new QuotaSnapshot(primaryLabel, primaryValue, secondaryLabel, secondaryValue,
-                    primaryResetsAt, secondaryResetsAt, todayTokens, lifetime,
+                    primaryResetsAt, secondaryResetsAt, todayTokens, yesterday, lifetime,
                     planType, resetCredits, updatedAt);
         } catch (Exception ignored) {
             return this;
@@ -224,10 +235,10 @@ public final class QuotaSnapshot {
         return result.replaceAll("\\.?0+$", "");
     }
 
-    private static long tokensForToday(JSONArray buckets) {
+    private static long tokensForDay(JSONArray buckets, int dayOffset) {
         if (buckets == null) return -1L;
-        String localDay = dayKey(System.currentTimeMillis(), TimeZone.getDefault());
-        String utcDay = dayKey(System.currentTimeMillis(), TimeZone.getTimeZone("UTC"));
+        String localDay = dayKey(dayOffset, TimeZone.getDefault());
+        String utcDay = dayKey(dayOffset, TimeZone.getTimeZone("UTC"));
         for (int i = 0; i < buckets.length(); i++) {
             JSONObject bucket = buckets.optJSONObject(i);
             if (bucket == null) continue;
@@ -238,10 +249,12 @@ public final class QuotaSnapshot {
         return -1L;
     }
 
-    private static String dayKey(long millis, TimeZone zone) {
+    private static String dayKey(int dayOffset, TimeZone zone) {
+        Calendar calendar = Calendar.getInstance(zone, Locale.US);
+        calendar.add(Calendar.DAY_OF_YEAR, dayOffset);
         SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
         format.setTimeZone(zone);
-        return format.format(new Date(millis));
+        return format.format(calendar.getTime());
     }
 
     private static String remaining(JSONObject window) {
