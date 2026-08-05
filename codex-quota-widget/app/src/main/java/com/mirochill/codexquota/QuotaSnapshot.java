@@ -1,49 +1,212 @@
 package com.mirochill.codexquota;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** A small, serialisable view of the last quota values found on the usage page. */
+/** Compact, serialisable view of all values rendered by the home-screen widget. */
 public final class QuotaSnapshot {
-    private static final Pattern VALUE = Pattern.compile(
-            "(?i)(\\b\\d{1,3}\\s*%|\\b\\d+\\s*(?:messages?|requests?|requêtes?|credits?|crédits?|tokens?)\\b|\\b\\d+\\s*(?:h|hr|hours?|heures?|m|min|minutes?)\\b)");
-    private static final Pattern TOPIC = Pattern.compile(
-            "(?i)\\b(5\\s*h|5\\s*hours?|daily|day|journalier|jour|weekly|week|hebdo|semaine)\\b");
-    private static final Pattern SIGNAL = Pattern.compile(
-            "(?i)(remaining|restant|restants|available|disponible|quota|limit|limite|usage|used|reset|renouvel|réinitial)");
     private static final Pattern PERCENT = Pattern.compile("(\\d{1,3})\\s*%");
 
     public final String primaryLabel;
     public final String primaryValue;
     public final String secondaryLabel;
     public final String secondaryValue;
+    public final long primaryResetsAt;
+    public final long secondaryResetsAt;
+    public final long dailyTokens;
+    public final long yesterdayTokens;
+    public final long lifetimeTokens;
+    public final String planType;
+    public final int resetCredits;
     public final long updatedAt;
 
     public QuotaSnapshot(String primaryLabel, String primaryValue,
-                         String secondaryLabel, String secondaryValue, long updatedAt) {
-        this.primaryLabel = safe(primaryLabel, "5h");
+                         String secondaryLabel, String secondaryValue,
+                         long primaryResetsAt, long secondaryResetsAt,
+                         long dailyTokens, long yesterdayTokens, long lifetimeTokens,
+                         String planType, int resetCredits, long updatedAt) {
+        this.primaryLabel = safe(primaryLabel, "5 H");
         this.primaryValue = safe(primaryValue, "—");
-        this.secondaryLabel = safe(secondaryLabel, "Semaine");
+        this.secondaryLabel = safe(secondaryLabel, "7 J");
         this.secondaryValue = safe(secondaryValue, "—");
+        this.primaryResetsAt = primaryResetsAt;
+        this.secondaryResetsAt = secondaryResetsAt;
+        this.dailyTokens = dailyTokens;
+        this.yesterdayTokens = yesterdayTokens;
+        this.lifetimeTokens = lifetimeTokens;
+        this.planType = safe(planType, "CODEX");
+        this.resetCredits = resetCredits;
         this.updatedAt = updatedAt;
     }
 
     public static QuotaSnapshot empty() {
-        return new QuotaSnapshot("5h", "—", "Semaine", "—", 0L);
+        return new QuotaSnapshot("5 H", "—", "7 J", "—", 0L, 0L,
+                -1L, -1L, -1L, "CODEX", -1, 0L);
     }
 
     public static QuotaSnapshot manual(String primary, String secondary) {
-        return new QuotaSnapshot("5h", primary, "Semaine", secondary, System.currentTimeMillis());
+        return new QuotaSnapshot("5 H", primary, "7 J", secondary, 0L, 0L,
+                -1L, -1L, -1L, "CODEX", -1, System.currentTimeMillis());
+    }
+
+    /** Parses the rate-limit payload returned by ChatGPT's Codex usage service. */
+    public static QuotaSnapshot fromUsageJson(String raw, String fallbackPlan,
+                                               QuotaSnapshot previous) {
+        if (raw == null || raw.trim().isEmpty()) return previous == null ? empty() : previous;
+        try {
+            JSONObject root = new JSONObject(raw);
+            JSONObject rateLimit = firstObject(root, "rate_limit", "rateLimits");
+            JSONObject originalPrimary = rateLimit == null ? null
+                    : firstObject(rateLimit, "primary_window", "primary");
+            JSONObject originalSecondary = rateLimit == null ? null
+                    : firstObject(rateLimit, "secondary_window", "secondary");
+
+            List<JSONObject> windows = new ArrayList<>();
+            addWindow(windows, originalPrimary);
+            addWindow(windows, originalSecondary);
+            JSONArray additional = firstArray(root, "additional_rate_limits", "additionalRateLimits");
+            if (additional != null) {
+                for (int i = 0; i < additional.length(); i++) {
+                    JSONObject entry = additional.optJSONObject(i);
+                    JSONObject additionalLimit = entry == null ? null
+                            : firstObject(entry, "rate_limit", "rateLimit");
+                    if (additionalLimit == null) continue;
+                    addWindow(windows, firstObject(additionalLimit, "primary_window", "primary"));
+                    addWindow(windows, firstObject(additionalLimit, "secondary_window", "secondary"));
+                }
+            }
+
+            // The backend can swap primary/secondary ordering between plans. Always present the
+            // shortest window first and the longest window second so 5 h / week never flip.
+            JSONObject primary = shortestWindow(windows, originalPrimary);
+            JSONObject secondary = windows.size() > 1
+                    ? longestWindow(windows, originalSecondary) : null;
+
+            String plan = firstString(root, "plan_type", "planType");
+            if (plan.isEmpty() && rateLimit != null) {
+                plan = firstString(rateLimit, "plan_type", "planType");
+            }
+            if (plan.isEmpty()) plan = fallbackPlan;
+            if ((plan == null || plan.trim().isEmpty()) && previous != null) plan = previous.planType;
+
+            JSONObject resetBank = firstObject(root,
+                    "rate_limit_reset_credits", "rateLimitResetCredits");
+            int resetCredits = resetBank == null ? -1
+                    : firstInt(resetBank, -1, "available_count", "availableCount");
+            if (resetCredits < 0 && previous != null) resetCredits = previous.resetCredits;
+
+            return new QuotaSnapshot(
+                    labelForWindow(primary, "QUOTA"), remaining(primary),
+                    labelForWindow(secondary, ""), remaining(secondary),
+                    resetAt(primary), resetAt(secondary),
+                    -1L,
+                    previous == null ? -1L : previous.yesterdayTokens,
+                    previous == null ? -1L : previous.lifetimeTokens,
+                    displayPlan(plan), resetCredits, System.currentTimeMillis());
+        } catch (Exception ignored) {
+            return previous == null ? empty() : previous;
+        }
+    }
+
+    private static void addWindow(List<JSONObject> windows, JSONObject window) {
+        if (window == null || windows.contains(window)) return;
+        long duration = windowSeconds(window);
+        if (duration > 0L) {
+            for (JSONObject existing : windows) {
+                if (windowSeconds(existing) == duration) return;
+            }
+        }
+        windows.add(window);
+    }
+
+    private static JSONObject shortestWindow(List<JSONObject> windows, JSONObject fallback) {
+        JSONObject best = null;
+        long bestSeconds = Long.MAX_VALUE;
+        for (JSONObject window : windows) {
+            long seconds = windowSeconds(window);
+            if (seconds > 0L && seconds < bestSeconds) {
+                best = window;
+                bestSeconds = seconds;
+            }
+        }
+        return best == null ? fallback : best;
+    }
+
+    private static JSONObject longestWindow(List<JSONObject> windows, JSONObject fallback) {
+        JSONObject best = null;
+        long bestSeconds = 0L;
+        for (JSONObject window : windows) {
+            long seconds = windowSeconds(window);
+            if (seconds > bestSeconds) {
+                best = window;
+                bestSeconds = seconds;
+            }
+        }
+        return best == null ? fallback : best;
+    }
+
+    /** Merges the profile/token-activity response without discarding valid quota data. */
+    public QuotaSnapshot withProfileJson(String raw) {
+        if (raw == null || raw.trim().isEmpty()) return this;
+        try {
+            JSONObject root = new JSONObject(raw);
+            JSONObject stats = firstObject(root, "stats", "usage_stats", "usageStats");
+            if (stats == null) stats = root;
+
+            long lifetime = firstLong(stats, -1L, "lifetime_tokens", "lifetimeTokens");
+            if (lifetime < 0L) lifetime = firstLong(root, -1L, "lifetime_tokens", "lifetimeTokens");
+            if (lifetime < 0L) lifetime = lifetimeTokens;
+
+            JSONArray daily = firstArray(root, "daily_usage_buckets", "dailyUsageBuckets");
+            if (daily == null) daily = firstArray(stats, "daily_usage_buckets", "dailyUsageBuckets");
+            long todayTokens = firstLong(root, -1L,
+                    "today_tokens", "todayTokens", "daily_tokens", "dailyTokens");
+            if (todayTokens < 0L) todayTokens = firstLong(stats, -1L,
+                    "today_tokens", "todayTokens", "daily_tokens", "dailyTokens");
+            if (todayTokens < 0L) todayTokens = tokensForDay(daily, 0);
+
+            long yesterday = firstLong(root, -1L,
+                    "yesterday_tokens", "yesterdayTokens");
+            if (yesterday < 0L) yesterday = firstLong(stats, -1L,
+                    "yesterday_tokens", "yesterdayTokens");
+            if (yesterday < 0L) yesterday = tokensForDay(daily, -1);
+            if (yesterday < 0L) yesterday = yesterdayTokens;
+
+            return new QuotaSnapshot(primaryLabel, primaryValue, secondaryLabel, secondaryValue,
+                    primaryResetsAt, secondaryResetsAt, todayTokens, yesterday, lifetime,
+                    planType, resetCredits, updatedAt);
+        } catch (Exception ignored) {
+            return this;
+        }
     }
 
     public boolean hasAnyValue() {
         return !"—".equals(primaryValue) || !"—".equals(secondaryValue);
     }
 
-    /** Returns a percentage suitable for a remaining-quota progress bar, or -1 when absent. */
+    public boolean hasSecondaryWindow() {
+        return !"—".equals(secondaryValue);
+    }
+
+    public long nextResetAt() {
+        long now = System.currentTimeMillis();
+        long first = primaryResetsAt > now ? primaryResetsAt : 0L;
+        long second = secondaryResetsAt > now ? secondaryResetsAt : 0L;
+        if (first == 0L) return second;
+        if (second == 0L) return first;
+        return Math.min(first, second);
+    }
+
     public static int percentFromValue(String value) {
         if (value == null) return -1;
         Matcher matcher = PERCENT.matcher(value);
@@ -55,77 +218,138 @@ public final class QuotaSnapshot {
         }
     }
 
-    /**
-     * Extracts only visible text from the dashboard. This intentionally avoids
-     * private API endpoints and works as a best-effort parser when the page UI changes.
-     */
-    public static QuotaSnapshot fromPageText(String raw) {
-        if (raw == null || raw.trim().isEmpty()) return empty();
-
-        List<String> candidates = new ArrayList<>();
-        String[] lines = raw.replace('\u00a0', ' ').split("\\R");
-        for (int i = 0; i < lines.length; i++) {
-            String line = lines[i];
-            String clean = line.replaceAll("\\s+", " ").trim();
-            if (clean.length() < 2 || clean.length() > 240) continue;
-            boolean topic = TOPIC.matcher(clean).find();
-            if ((!SIGNAL.matcher(clean).find() && !topic) && !VALUE.matcher(clean).find()) continue;
-
-            // Responsive dashboards often render the label and percentage on separate lines.
-            if (topic && !VALUE.matcher(clean).find()) {
-                for (int j = i + 1; j < Math.min(lines.length, i + 4); j++) {
-                    String next = lines[j].replaceAll("\\s+", " ").trim();
-                    if (next.isEmpty()) continue;
-                    if (TOPIC.matcher(next).find()) break;
-                    if (VALUE.matcher(next).find() || next.matches(".*\\d.*")) {
-                        clean = clean + " " + next;
-                        break;
-                    }
-                }
-            }
-            if (VALUE.matcher(clean).find() || clean.matches(".*\\d.*")) {
-                candidates.add(clean);
-            }
-        }
-
-        String[] primary = findCandidate(candidates, true, null);
-        String[] secondary = findCandidate(candidates, false, primary == null ? null : primary[2]);
-        if (primary == null) primary = findCandidate(candidates, false, null);
-        if (secondary == null) secondary = findCandidate(candidates, false, primary == null ? null : primary[2]);
-
-        String pLabel = primary == null ? "5h" : primary[0];
-        String pValue = primary == null ? "—" : primary[1];
-        String sLabel = secondary == null ? "Semaine" : secondary[0];
-        String sValue = secondary == null ? "—" : secondary[1];
-        return new QuotaSnapshot(pLabel, pValue, sLabel, sValue, System.currentTimeMillis());
+    public static String compactTokens(long value) {
+        if (value < 0L) return "—";
+        if (value < 1_000L) return Long.toString(value);
+        if (value < 1_000_000L) return compact(value / 1_000d) + "K";
+        if (value < 1_000_000_000L) return compact(value / 1_000_000d) + "M";
+        return compact(value / 1_000_000_000d) + "B";
     }
 
-    private static String[] findCandidate(List<String> candidates, boolean preferPrimary, String skip) {
-        for (String candidate : candidates) {
-            if (skip != null && skip.equals(candidate)) continue;
-            String lower = candidate.toLowerCase(Locale.ROOT);
-            boolean isPrimary = lower.matches(".*(5\\s*h|5\\s*hours?|daily|day|journalier|jour).*" );
-            boolean isSecondary = lower.matches(".*(weekly|week|hebdo|semaine).*" );
-            if (preferPrimary && !isPrimary) continue;
-            if (!preferPrimary && isPrimary && !isSecondary) continue;
-            String value = valueFrom(candidate);
-            if (value.isEmpty()) continue;
-            String label = labelFrom(candidate, preferPrimary ? "5h" : "Semaine");
-            return new String[]{label, value, candidate};
+    private static String compact(double value) {
+        String result = value >= 100d
+                ? String.format(Locale.US, "%.0f", value)
+                : value >= 10d
+                ? String.format(Locale.US, "%.1f", value)
+                : String.format(Locale.US, "%.2f", value);
+        return result.replaceAll("\\.?0+$", "");
+    }
+
+    private static long tokensForDay(JSONArray buckets, int dayOffset) {
+        if (buckets == null) return -1L;
+        String localDay = dayKey(dayOffset, TimeZone.getDefault());
+        String utcDay = dayKey(dayOffset, TimeZone.getTimeZone("UTC"));
+        for (int i = 0; i < buckets.length(); i++) {
+            JSONObject bucket = buckets.optJSONObject(i);
+            if (bucket == null) continue;
+            String start = firstString(bucket, "start_date", "startDate");
+            if (!localDay.equals(start) && !utcDay.equals(start)) continue;
+            return firstLong(bucket, -1L, "tokens", "token_count", "tokenCount");
+        }
+        return -1L;
+    }
+
+    private static String dayKey(int dayOffset, TimeZone zone) {
+        Calendar calendar = Calendar.getInstance(zone, Locale.US);
+        calendar.add(Calendar.DAY_OF_YEAR, dayOffset);
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+        format.setTimeZone(zone);
+        return format.format(calendar.getTime());
+    }
+
+    private static String remaining(JSONObject window) {
+        if (window == null) return "—";
+        int used = firstInt(window, -1, "used_percent", "usedPercent");
+        if (used < 0) return "—";
+        return (100 - Math.max(0, Math.min(100, used))) + "%";
+    }
+
+    private static long windowSeconds(JSONObject window) {
+        if (window == null) return 0L;
+        long seconds = firstLong(window, 0L, "limit_window_seconds", "limitWindowSeconds");
+        if (seconds == 0L) {
+            long minutes = firstLong(window, 0L, "window_duration_mins", "windowDurationMins");
+            seconds = minutes * 60L;
+        }
+        return seconds;
+    }
+
+    private static String labelForWindow(JSONObject window, String fallback) {
+        long seconds = windowSeconds(window);
+        if (seconds <= 0L) return fallback;
+        if (seconds < 36L * 60L * 60L) {
+            long hours = Math.max(1L, Math.round(seconds / 3600d));
+            return hours + " H";
+        }
+        if (seconds < 28L * 24L * 60L * 60L) {
+            long days = Math.max(1L, Math.round(seconds / 86_400d));
+            return days + " J";
+        }
+        long months = Math.max(1L, Math.round(seconds / (30d * 86_400d)));
+        return months == 1L ? "1 MOIS" : months + " MOIS";
+    }
+
+    private static long resetAt(JSONObject window) {
+        if (window == null) return 0L;
+        long timestamp = firstLong(window, 0L, "reset_at", "resets_at", "resetsAt");
+        if (timestamp > 0L && timestamp < 10_000_000_000L) timestamp *= 1000L;
+        if (timestamp > 0L) return timestamp;
+        long after = firstLong(window, 0L, "reset_after_seconds", "resetAfterSeconds");
+        return after > 0L ? System.currentTimeMillis() + after * 1000L : 0L;
+    }
+
+    private static String displayPlan(String raw) {
+        if (raw == null || raw.trim().isEmpty()) return "CODEX";
+        String plan = raw.trim().toUpperCase(Locale.ROOT);
+        if (plan.startsWith("CHATGPT_")) plan = plan.substring("CHATGPT_".length());
+        return plan.length() > 12 ? plan.substring(0, 12) : plan;
+    }
+
+    private static JSONObject firstObject(JSONObject object, String... keys) {
+        if (object == null) return null;
+        for (String key : keys) {
+            JSONObject value = object.optJSONObject(key);
+            if (value != null) return value;
         }
         return null;
     }
 
-    private static String valueFrom(String line) {
-        Matcher matcher = VALUE.matcher(line);
-        if (matcher.find()) return matcher.group(1).replaceAll("\\s+", "");
-        Matcher number = Pattern.compile("\\b\\d{1,4}\\b").matcher(line);
-        return number.find() ? number.group() : "";
+    private static JSONArray firstArray(JSONObject object, String... keys) {
+        if (object == null) return null;
+        for (String key : keys) {
+            JSONArray value = object.optJSONArray(key);
+            if (value != null) return value;
+        }
+        return null;
     }
 
-    private static String labelFrom(String line, String fallback) {
-        Matcher topic = TOPIC.matcher(line);
-        if (topic.find()) return topic.group(1).replaceAll("\\s+", " ");
+    private static String firstString(JSONObject object, String... keys) {
+        if (object == null) return "";
+        for (String key : keys) {
+            String value = object.optString(key, "").trim();
+            if (!value.isEmpty() && !"null".equalsIgnoreCase(value)) return value;
+        }
+        return "";
+    }
+
+    private static int firstInt(JSONObject object, int fallback, String... keys) {
+        long value = firstLong(object, fallback, keys);
+        if (value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) return fallback;
+        return (int) value;
+    }
+
+    private static long firstLong(JSONObject object, long fallback, String... keys) {
+        if (object == null) return fallback;
+        for (String key : keys) {
+            if (!object.has(key) || object.isNull(key)) continue;
+            Object raw = object.opt(key);
+            if (raw instanceof Number) return ((Number) raw).longValue();
+            try {
+                return Long.parseLong(String.valueOf(raw));
+            } catch (NumberFormatException ignored) {
+                // Try the next spelling.
+            }
+        }
         return fallback;
     }
 
