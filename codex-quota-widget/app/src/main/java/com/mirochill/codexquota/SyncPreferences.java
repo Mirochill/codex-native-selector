@@ -3,10 +3,11 @@ package com.mirochill.codexquota;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-/** User-selected refresh cadence. Android's periodic-job minimum is 15 minutes. */
+/** User-selected refresh cadence. Android's minimum background cadence is 15 minutes. */
 public final class SyncPreferences {
     private static final String PREFS = "codex_sync_settings";
     private static final String INTERVAL = "interval_minutes";
+    private static final String NEXT_ALARM_AT = "next_alarm_at";
     public static final long DISABLED = 0L;
     private static final int DEFAULT_MINUTES = 30;
 
@@ -44,7 +45,18 @@ public final class SyncPreferences {
 
     public static void select(Context context, int index) {
         int safe = index >= 0 && index < MINUTES.length ? index : 1;
-        prefs(context).edit().putInt(INTERVAL, MINUTES[safe]).apply();
+        prefs(context).edit()
+                .putInt(INTERVAL, MINUTES[safe])
+                .putLong(NEXT_ALARM_AT, 0L)
+                .apply();
+    }
+
+    static long nextAlarmAt(Context context) {
+        return prefs(context).getLong(NEXT_ALARM_AT, 0L);
+    }
+
+    static void markNextAlarmAt(Context context, long timestamp) {
+        prefs(context).edit().putLong(NEXT_ALARM_AT, Math.max(0L, timestamp)).apply();
     }
 
     private static int selectedMinutes(Context context) {
