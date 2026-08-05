@@ -19,6 +19,7 @@ public final class QuotaStore {
                 p.getLong("primary_resets_at", 0L),
                 p.getLong("secondary_resets_at", 0L),
                 p.getLong("daily_tokens", -1L),
+                p.getLong("yesterday_tokens", -1L),
                 p.getLong("lifetime_tokens", -1L),
                 p.getString("plan_type", "CODEX"),
                 p.getInt("reset_credits", -1),
@@ -35,6 +36,7 @@ public final class QuotaStore {
                 .putLong("primary_resets_at", snapshot.primaryResetsAt)
                 .putLong("secondary_resets_at", snapshot.secondaryResetsAt)
                 .putLong("daily_tokens", snapshot.dailyTokens)
+                .putLong("yesterday_tokens", snapshot.yesterdayTokens)
                 .putLong("lifetime_tokens", snapshot.lifetimeTokens)
                 .putString("plan_type", snapshot.planType)
                 .putInt("reset_credits", snapshot.resetCredits)
