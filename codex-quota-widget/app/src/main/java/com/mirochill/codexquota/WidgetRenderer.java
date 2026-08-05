@@ -152,7 +152,8 @@ public final class WidgetRenderer {
         canvas.drawRoundRect(strip, 6.75f, 6.75f, paint);
         paint.setStyle(Paint.Style.FILL);
         paint.setColor(Color.rgb(48, 65, 73));
-        canvas.drawRect(113.8f, 70f, 114.3f, 77.5f, paint);
+        canvas.drawRect(79.1f, 70f, 79.6f, 77.5f, paint);
+        canvas.drawRect(149.4f, 70f, 149.9f, 77.5f, paint);
     }
 
     private static void drawAccountCard(Canvas canvas) {
