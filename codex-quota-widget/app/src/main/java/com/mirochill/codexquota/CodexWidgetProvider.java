@@ -70,6 +70,7 @@ public class CodexWidgetProvider extends AppWidgetProvider {
         views.setTextViewText(R.id.widget_single_value, snapshot.primaryValue);
         views.setTextViewText(R.id.widget_single_label, displayWindow(snapshot.primaryLabel));
         views.setTextViewText(R.id.widget_tokens_day, QuotaSnapshot.compactTokens(snapshot.dailyTokens));
+        views.setTextViewText(R.id.widget_tokens_yesterday, QuotaSnapshot.compactTokens(snapshot.yesterdayTokens));
         views.setTextViewText(R.id.widget_tokens_total, QuotaSnapshot.compactTokens(snapshot.lifetimeTokens));
         views.setTextViewText(R.id.widget_plan, snapshot.planType);
         views.setTextViewText(R.id.widget_reset_bank,
