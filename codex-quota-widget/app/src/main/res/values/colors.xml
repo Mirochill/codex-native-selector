@@ -10,4 +10,10 @@
     <color name="codex_surface_light">#202B25</color>
     <color name="codex_surface_elevated">#1D2922</color>
     <color name="codex_outline">#304238</color>
+    <color name="codex_muted_bright">#B7C4CD</color>
+    <color name="codex_text_soft">#DCE5EA</color>
+    <color name="codex_blue">#7B8CFF</color>
+    <color name="codex_blue_soft">#B7C1FF</color>
+    <color name="codex_divider_blue">#5463B8</color>
+    <color name="codex_ring_track">#263139</color>
 </resources>

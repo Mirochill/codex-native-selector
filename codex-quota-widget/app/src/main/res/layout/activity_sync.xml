@@ -7,24 +7,49 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:padding="10dp">
+        android:orientation="vertical"
+        android:padding="22dp">
         <TextView
             android:id="@+id/sync_status"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Connexion ChatGPT / Codex…"
+            android:text="Préparation de la connexion ChatGPT…"
             android:textColor="@color/codex_text"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="L’authentification s’ouvre dans ton navigateur système. Aucun mot de passe ne passe par l’app."
+            android:textColor="@color/codex_muted"
             android:textSize="13sp" />
+        <TextView
+            android:id="@+id/sync_code"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:gravity="center"
+            android:letterSpacing="0.18"
+            android:textColor="@color/codex_accent"
+            android:textSize="30sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+        <Button
+            android:id="@+id/sync_open_auth"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="Ouvrir la connexion ChatGPT"
+            android:visibility="gone" />
         <Button
             android:id="@+id/sync_reload"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Rafraîchir" />
+            android:layout_marginTop="10dp"
+            android:text="Actualiser le quota" />
     </LinearLayout>
-    <WebView
-        android:id="@+id/sync_webview"
+    <Space
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1" />
