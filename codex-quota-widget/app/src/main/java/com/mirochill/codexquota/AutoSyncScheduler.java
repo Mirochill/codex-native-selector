@@ -1,68 +1,83 @@
 package com.mirochill.codexquota;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.app.job.JobInfo;
 import android.app.job.JobScheduler;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Build;
 import android.os.PersistableBundle;
 
-/** Lets Android batch quota refreshes instead of keeping a process or timer alive. */
+/** Schedules short quota fetches without keeping a process or timer alive. */
 public final class AutoSyncScheduler {
     static final int PERIODIC_JOB_ID = 0xC0D301;
     static final int IMMEDIATE_JOB_ID = 0xC0D302;
+    private static final int ALARM_REQUEST_CODE = 0xC0D303;
     private static final String EXTRA_SCHEDULE_REVISION = "schedule_revision";
-    private static final int SCHEDULE_REVISION = 2;
+    private static final int SCHEDULE_REVISION = 3;
+
     private AutoSyncScheduler() {}
 
     public static void ensureScheduled(Context context) {
         try {
             Context app = context.getApplicationContext();
-            JobScheduler scheduler = app.getSystemService(JobScheduler.class);
-            if (scheduler == null) return;
-
             long period = SyncPreferences.intervalMillis(app);
             if (period == SyncPreferences.DISABLED) {
-                scheduler.cancel(PERIODIC_JOB_ID);
+                cancel(app);
                 return;
             }
             if (!ChatGptAuthStore.hasTokens(app) || !CodexWidgetProvider.hasWidgets(app)) return;
 
-            JobInfo pending = scheduler.getPendingJob(PERIODIC_JOB_ID);
-            if (pending != null
-                    && pending.getIntervalMillis() == period
-                    && pending.getExtras().getInt(EXTRA_SCHEDULE_REVISION, 0)
-                    == SCHEDULE_REVISION) return;
-            if (pending != null) scheduler.cancel(PERIODIC_JOB_ID);
+            JobScheduler scheduler = app.getSystemService(JobScheduler.class);
+            if (scheduler != null) {
+                JobInfo pending = scheduler.getPendingJob(PERIODIC_JOB_ID);
+                boolean current = pending != null
+                        && pending.getIntervalMillis() == period
+                        && pending.getExtras().getInt(EXTRA_SCHEDULE_REVISION, 0)
+                        == SCHEDULE_REVISION;
+                if (!current) {
+                    if (pending != null) scheduler.cancel(PERIODIC_JOB_ID);
+                    long flex = Math.max(5L * 60L * 1000L,
+                            Math.min(10L * 60L * 1000L, period / 3L));
+                    JobInfo job = base(app, PERIODIC_JOB_ID)
+                            .setExtras(scheduleExtras())
+                            .setPersisted(true)
+                            .setPeriodic(period, flex)
+                            .build();
+                    scheduler.schedule(job);
+                }
+            }
 
-            long flex = Math.max(5L * 60L * 1000L,
-                    Math.min(10L * 60L * 1000L, period / 3L));
-            JobInfo job = base(app, PERIODIC_JOB_ID)
-                    .setExtras(scheduleExtras())
-                    .setPersisted(true)
-                    .setPeriodic(period, flex)
-                    .build();
-            scheduler.schedule(job);
+            // Samsung can defer periodic jobs heavily. A single self-renewing alarm wakes
+            // the job at the chosen cadence while keeping no service alive between syncs.
+            ensureAlarmScheduled(app, period);
         } catch (RuntimeException ignored) {
-            // Scheduling must never be able to crash the app or the widget host.
+            // Scheduling must never crash the app or the widget host.
         }
     }
 
     public static void reschedule(Context context) {
+        Context app = context.getApplicationContext();
         try {
-            JobScheduler scheduler = context.getSystemService(JobScheduler.class);
+            JobScheduler scheduler = app.getSystemService(JobScheduler.class);
             if (scheduler != null) scheduler.cancel(PERIODIC_JOB_ID);
         } catch (RuntimeException ignored) {
             // ensureScheduled below performs the same best-effort recovery.
         }
-        ensureScheduled(context);
+        cancelAlarm(app);
+        ensureScheduled(app);
     }
 
-    /**
-     * Converts a launcher/widget refresh into a real authenticated sync whenever the
-     * last successful server fetch is older than the interval selected by the user.
-     * This is a low-cost fallback for manufacturers that aggressively defer periodic jobs.
-     */
+    public static void onAlarm(Context context) {
+        Context app = context.getApplicationContext();
+        SyncPreferences.markNextAlarmAt(app, 0L);
+        ensureScheduled(app);
+        requestSyncIfDue(app);
+    }
+
+    /** Starts a real authenticated fetch when the last successful one is old enough. */
     public static void requestSyncIfDue(Context context) {
         try {
             Context app = context.getApplicationContext();
@@ -77,7 +92,7 @@ public final class AutoSyncScheduler {
             long tolerance = Math.min(60_000L, Math.max(5_000L, interval / 20L));
             if (age >= interval - tolerance) requestImmediateSync(app);
         } catch (RuntimeException ignored) {
-            // The normal periodic job remains available if the launcher fallback fails.
+            // The periodic job and alarm remain available if this fallback fails.
         }
     }
 
@@ -86,11 +101,7 @@ public final class AutoSyncScheduler {
             Context app = context.getApplicationContext();
             if (!ChatGptAuthStore.hasTokens(app) || !CodexWidgetProvider.hasWidgets(app)) return;
             JobScheduler scheduler = app.getSystemService(JobScheduler.class);
-            if (scheduler == null) return;
-
-            // A widget update, app resume and package event can arrive together. Keep one
-            // network request in flight instead of replacing the same immediate job repeatedly.
-            if (scheduler.getPendingJob(IMMEDIATE_JOB_ID) != null) return;
+            if (scheduler == null || scheduler.getPendingJob(IMMEDIATE_JOB_ID) != null) return;
 
             JobInfo.Builder builder = base(app, IMMEDIATE_JOB_ID);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -107,14 +118,46 @@ public final class AutoSyncScheduler {
     }
 
     public static void cancel(Context context) {
+        Context app = context.getApplicationContext();
         try {
-            JobScheduler scheduler = context.getSystemService(JobScheduler.class);
-            if (scheduler == null) return;
-            scheduler.cancel(PERIODIC_JOB_ID);
-            scheduler.cancel(IMMEDIATE_JOB_ID);
+            JobScheduler scheduler = app.getSystemService(JobScheduler.class);
+            if (scheduler != null) {
+                scheduler.cancel(PERIODIC_JOB_ID);
+                scheduler.cancel(IMMEDIATE_JOB_ID);
+            }
         } catch (RuntimeException ignored) {
-            // Nothing remains alive in-process, so there is nothing else to stop.
+            // No process or timer remains alive in the application.
         }
+        cancelAlarm(app);
+    }
+
+    private static void ensureAlarmScheduled(Context context, long period) {
+        long now = System.currentTimeMillis();
+        long existing = SyncPreferences.nextAlarmAt(context);
+        if (existing > now + 30_000L && existing <= now + period + 60_000L) return;
+
+        AlarmManager alarms = context.getSystemService(AlarmManager.class);
+        if (alarms == null) return;
+        long next = now + period;
+        alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, next, alarmIntent(context));
+        SyncPreferences.markNextAlarmAt(context, next);
+    }
+
+    private static void cancelAlarm(Context context) {
+        try {
+            AlarmManager alarms = context.getSystemService(AlarmManager.class);
+            if (alarms != null) alarms.cancel(alarmIntent(context));
+        } catch (RuntimeException ignored) {
+            // The JobScheduler path remains available.
+        }
+        SyncPreferences.markNextAlarmAt(context, 0L);
+    }
+
+    private static PendingIntent alarmIntent(Context context) {
+        Intent intent = new Intent(context, WidgetRefreshReceiver.class)
+                .setAction(WidgetRefreshReceiver.ACTION_AUTO_SYNC_ALARM);
+        return PendingIntent.getBroadcast(context, ALARM_REQUEST_CODE, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
     private static JobInfo.Builder base(Context context, int id) {
