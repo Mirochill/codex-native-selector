@@ -81,6 +81,7 @@ public class CodexWidgetProvider extends AppWidgetProvider {
                 snapshot.updatedAt == 0L ? View.GONE : View.VISIBLE);
 
         Intent open = new Intent(context, MainActivity.class)
+                .setAction(MainActivity.ACTION_WIDGET_SYNC)
                 .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent pending = PendingIntent.getActivity(context, 1001, open,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
