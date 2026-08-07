@@ -6,9 +6,15 @@
 [![Codex Desktop](https://img.shields.io/badge/Codex%20Desktop-local%20patch-10A37F?style=for-the-badge)](https://openai.com/codex/)
 [![License](https://img.shields.io/badge/license-MIT-6E56CF?style=for-the-badge)](LICENSE)
 
-This project turns Codex's compact model selector into a clearer and faster interface: model variants in tabs, the native reasoning slider, model-specific animated colors, Fast mode, a settings button, and an automatically grouped model menu.
+This project turns Codex's compact model selector into a clearer and faster interface: model variants in tabs, the native reasoning slider, model-specific animated colors, Fast mode ⚡ with slider glow, Ultimate power glow 🔥 on max, per-model effort memory, a settings button, and an automatically grouped model menu.
 
 The project does not redistribute Codex or replace the official installation. It generates a local portable copy from the Codex installation already on your computer.
+
+## Demo
+
+<video src="docs/demo.mp4" poster="docs/demo-poster.jpg" width="392" height="332" controls autoplay muted loop playsinline></video>
+
+> Drag to **MAX** → Range glows 🔥, thumb pulses, burst fires. Toggle **⚡ Fast** → slider re-tints. Tabs switch model families — effort is remembered per exact model.
 
 ## Preview
 
@@ -25,15 +31,18 @@ The ⚙ button opens the available model families, such as `5.6`, `5.5`, `5.4`, 
 
 ## Features
 
-- Uses Codex Desktop's native model-power slider component.
+- Uses Codex Desktop's native model-power slider component (`Yms` + `impl-DQ1U0Spg.js` — tracks, ticks, bursts all tinted via `--a`).
 - Reads reasoning efforts from the real Codex model catalog.
 - Shows model variants only when they actually exist.
 - Displays a fixed `Full` tab for a family with no selectable variant.
 - Groups the model menu automatically by model family.
 - Recolors the Ultra animation using the active model family's color while preserving the native slider animation.
+- **Fast mode ⚡** — fully wired (forwards `serviceTierOptions` through `Yhs → _hs`, toggles `ltr(f)` → `Yms phase:active` particle stream).
+- **Ultimate power glow 🔥** — rightmost slider position triggers `data-max=true` gradient + thumb/Track pulse + MaxBurst.
+- **Per-model effort memory** — remembers the last reasoning effort per exact `gpt-*` model in `localStorage`.
 - Keeps Fast mode in the same row as the model variants.
-- Renders the model menu above the interface through a DOM portal to avoid clipping and z-index issues.
-- Creates a separate local copy while leaving the official installation untouched.
+- Renders the model menu above the interface through a DOM portal (`yis.createPortal`) to avoid clipping and z-index issues.
+- Creates a separate local copy while leaving the official installation untouched — auto-rebuilds on Store update via `Launch Codex Native Selector.ps1`.
 
 ## How it works
 
@@ -55,7 +64,7 @@ The patch only targets the selector bundle and preserves the original applicatio
 
 - macOS 12 or newer, Windows 10, or Windows 11.
 - Codex Desktop installed officially.
-- Node.js 22.12 or newer.
+- Node.js 22.12 or newer (tested on 24.9.0).
 - Codex fully closed while building and launching.
 
 ### macOS
@@ -129,6 +138,10 @@ outputs\Codex-Native-Selector\Launch Codex Native Selector.cmd
 
 The official and customized copies must not run at the same time because they use the same local Codex environment.
 The launcher checks the installed Store version on every start and rebuilds the portable copy automatically when Codex has updated.
+
+## Compatibility
+
+Verified against **Codex 26.803.5235.0** (Store, `app-initial-CUcIZsiK.js` 13.1 MB, chunk `478af2a` @24062881). The patch is version-pinned — a Store update that renames minified symbols (`_hs/vhs`, `yis/o0/a0`, `Lhs/Bhs`) will need a new profile in `selector-compatibility.mjs`. The launcher detects drift automatically.
 
 ## Updating after a Codex update
 
@@ -206,11 +219,15 @@ Close the customized copy, then launch Codex from the Start menu. No uninstall o
 ## Repository structure
 
 ```text
+docs/
+├── demo.mp4                 # 22s screen capture — tabs, Fast, MAX glow
+└── demo-poster.jpg          # Video poster frame
 tools/
 ├── build-portable.ps1       # Copies the local installation and creates the launcher
 ├── build-macos.sh           # Builds and ad-hoc signs a separate macOS app bundle
-├── build-inplace-asar.mjs   # Applies the targeted app.asar patch
-└── selector-v2.js.txt        # Customized selector component
+├── build-inplace-asar.mjs   # Applies the targeted app.asar patch (handles a/i advanced view lock)
+├── selector-compatibility.mjs # 5 profiles: legacy, 26.707×2, 26.721, 26.803 (supports 26.803.5235.0)
+└── selector-v2.js.txt        # Customized selector component (tabs, Fast, MAX glow, effort memory)
 
 README.md
 LICENSE
