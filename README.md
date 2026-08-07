@@ -12,7 +12,15 @@ The project does not redistribute Codex or replace the official installation. It
 
 ## Demo
 
-<video src="docs/demo.mp4" poster="docs/demo-poster.jpg" width="392" height="332" controls autoplay muted loop playsinline></video>
+<p align="center">
+  <a href="https://github.com/HenkDz/codex-native-selector/blob/main/docs/demo.mp4">
+    <img src="docs/demo-poster.jpg" width="392" alt="Codex Native Selector demo — tabs, Fast ⚡, MAX glow 🔥" />
+  </a>
+</p>
+
+https://github.com/HenkDz/codex-native-selector/blob/main/docs/demo.mp4
+
+> ▶️ Click the poster or link above to play **22s demo** — tabs, ⚡ Fast particle stream, 🔥 MAX glow.
 
 > Drag to **MAX** → Range glows 🔥, thumb pulses, burst fires. Toggle **⚡ Fast** → slider re-tints. Tabs switch model families — effort is remembered per exact model.
 
