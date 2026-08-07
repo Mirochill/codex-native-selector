@@ -142,7 +142,7 @@ if (!source.includes(menuViewBefore)) {
   throw new Error("The advanced-view state wiring was not found.");
 }
 source = source
-  .replace(advancedStateBefore, advancedStateBefore.replace("i===`advanced`", "!1"))
+  .replace(advancedStateBefore, advancedStateBefore.replace("i===`advanced`", "!1").replace("a===`advanced`", "!1"))
   .replace(menuViewBefore, menuViewAfter);
 
 const originalChunk = fs.readFileSync(chunkSourcePath);
