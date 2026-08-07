@@ -189,6 +189,58 @@ export const selectorCompatibilityProfiles = [
       "_SimpleView_1k2a9_93",
     ],
   },
+  {
+    name: "codex-26.803",
+    catalogBefore:
+      "function Ams(e,{includeUltraInSlider:t=!1,removeXHigh:n=!1}={}){let r=Lms((t?[...zms,Bms]:zms).filter(({reasoningEffort:e})=>!n||e!==`xhigh`),e);if(r.length>=3)return r;let i=Lms(Vms.filter(({reasoningEffort:e})=>!n||e!==`xhigh`),e);return i.length>=3?i:[]}",
+    catalogAfter:
+      "function Ams(e,{includeUltraInSlider:t=!1,removeXHigh:n=!1}={}){return Nms(e).filter(({reasoningEffort:e})=>(t||e!==`ultra`)&&(!n||e!==`xhigh`))}",
+    componentName: "_hs",
+    nextComponentName: "vhs",
+    controlsName: "Hhs",
+    nextControlsName: "Uhs",
+    advancedStateBefore: "A=(0,c0.useRef)(null),j=a===`advanced`,M=",
+    hooksName: "xhs",
+    fastPredicate: "Uhs",
+    standardPredicate: "Whs",
+    fastIcon: "Lhs",
+    standardIcon: "Bhs",
+    sliderComponent: "Yms",
+    jsxRuntime: "o0",
+    stylesName: "a0",
+    portalExpression: "yis.createPortal",
+    controlsJsxRuntime: "s0",
+    templateReplacements: [
+      ["._SimpleView_15yqt_93", "._SimpleView_1kuf4_99"],
+    ],
+    assetMarkers: [
+      "_Range_m3zgh_451",
+      "_Thumb_m3zgh_23",
+      "_Mask_vx1zu_27",
+      "_Burst_1ibg9_151",
+    ],
+    fieldsBefore: "supportedReasoningEfforts:n})=>{let r=",
+    fieldsAfter:
+      "supportedReasoningEfforts:n,defaultReasoningEffort:ct})=>{let r=",
+    valueBefore: "modelLabel:r,reasoningEffort:e}))})??[]}",
+    valueAfter:
+      "modelLabel:r,reasoningEffort:e,defaultReasoningEffort:ct}))})??[]}",
+    sliderPropsBefore:
+      "fastModeEnabled:re,onDragToMax:B,onSelectComplete:o,onSelectPower:H,powerSelections:u,selectedPowerSelection:d,shouldReduceMotion:_,transitionsReady:E",
+    sliderPropsAfter:
+      "fastModeEnabled:re,onDragToMax:B,onSelectComplete:o,onSelectPower:e=>H(codexNativeSelectPower(e,d,u)),onSelectServiceTier:c,powerSelections:u,selectedPowerSelection:d,serviceTierOptions:p,serviceTierOptionsLoading:m,shouldReduceMotion:_,transitionsReady:E",
+    menuViewBefore: '"data-view":a,style:I',
+    menuViewAfter: '"data-view":`simple`,style:I',
+    runtimeMarkers: [
+      "bhs=l()",
+      "Qhs=l()",
+      "function Uhs(e){let{iconKind:t}=e;return t===`fast`}",
+      "function Whs(e){let{value:t}=e;return t==null}",
+      "(0,s0.jsx)(zH.Item,",
+      "(0,l0.jsx)(_hs,{active:",
+      "_SimpleView_1kuf4_99",
+    ],
+  },
 ];
 
 function sourceMarkers(profile) {
