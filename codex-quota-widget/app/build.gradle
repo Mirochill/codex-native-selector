@@ -6,12 +6,25 @@ android {
     namespace "com.mirochill.codexquota"
     compileSdk 35
 
+    def stableDebugKeystore = rootProject.file(".signing/debug.keystore")
+
+    signingConfigs {
+        if (stableDebugKeystore.exists()) {
+            stableDebug {
+                storeFile stableDebugKeystore
+                storePassword "codex-widget-local"
+                keyAlias "codexwidget"
+                keyPassword "codex-widget-local"
+            }
+        }
+    }
+
     defaultConfig {
         applicationId "com.mirochill.codexquota"
         minSdk 26
         targetSdk 35
-        versionCode 2
-        versionName "1.1"
+        versionCode 14
+        versionName "1.13"
     }
 
     buildTypes {
@@ -22,6 +35,9 @@ android {
         }
         debug {
             minifyEnabled false
+            if (stableDebugKeystore.exists()) {
+                signingConfig signingConfigs.stableDebug
+            }
         }
     }
 
